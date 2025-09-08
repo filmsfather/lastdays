@@ -364,9 +364,11 @@ export default function StudentDashboard() {
   // 한국 시간대 기준으로 오늘 날짜 가져오기
   const getKoreanDate = (date?: Date) => {
     const now = date || new Date()
-    // UTC에서 KST(+9시간) 변환
-    const kstTime = new Date(now.getTime() + (9 * 60 * 60 * 1000))
-    return kstTime.toISOString().split('T')[0]
+    // 한국 시간대로 변환하여 YYYY-MM-DD 형태로 반환
+    const koreanTime = new Intl.DateTimeFormat('fr-CA', { 
+      timeZone: 'Asia/Seoul' 
+    }).format(now)
+    return koreanTime // YYYY-MM-DD 형태
   }
 
   // 당일 또는 미래 예약인지 확인

@@ -70,13 +70,19 @@ export async function POST(
       )
     }
 
-    // 당일 예약인지 확인
-    const reservationDate = new Date(reservation.slot.date)
-    const currentDate = new Date()
-    const currentDateString = currentDate.toISOString().split('T')[0]
-    const reservationDateString = reservationDate.toISOString().split('T')[0]
+    // 당일 예약인지 확인 (한국 시간 기준)
+    const getKoreanDate = (date?: Date) => {
+      const now = date || new Date()
+      const koreanTime = new Intl.DateTimeFormat('fr-CA', { 
+        timeZone: 'Asia/Seoul' 
+      }).format(now)
+      return koreanTime // YYYY-MM-DD 형태
+    }
 
-    console.log('Date check:', { currentDateString, reservationDateString })
+    const reservationDateString = reservation.slot.date
+    const currentDateString = getKoreanDate()
+
+    console.log('Date check (Korean timezone):', { currentDateString, reservationDateString })
 
     if (currentDateString !== reservationDateString) {
       return NextResponse.json(
