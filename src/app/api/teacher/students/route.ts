@@ -9,18 +9,11 @@ const supabase = createClient(
 
 async function getCurrentUser() {
   try {
-    console.log('Students API getCurrentUser called')
     const cookieStore = await cookies()
     const sessionCookie = cookieStore.get('session')
     const userCookie = cookieStore.get('user')
     
-    console.log('Students API cookies:', {
-      session: sessionCookie ? 'exists' : 'missing',
-      user: userCookie ? 'exists' : 'missing'
-    })
-    
     if (!sessionCookie || !userCookie) {
-      console.log('Students API: No cookies found')
       return null
     }
 
@@ -46,19 +39,7 @@ async function getCurrentUser() {
 
 export async function GET() {
   try {
-    console.log('Students API called')
-    const user = await getCurrentUser()
-    console.log('Students API user:', user)
-    
-    // 임시: 개발환경에서는 하드코딩된 교사 사용자 사용
-    const currentUser = user || {
-      id: 14,
-      name: '김선생',
-      class_name: '수학교사',
-      role: 'teacher'
-    }
-    
-    console.log('Using user:', currentUser)
+    const currentUser = await getCurrentUser()
     
     if (!currentUser || currentUser.role !== 'teacher') {
       return NextResponse.json({

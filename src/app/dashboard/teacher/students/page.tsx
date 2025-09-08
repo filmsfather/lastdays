@@ -1,6 +1,12 @@
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
+import { createClient } from '@supabase/supabase-js'
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+)
 
 interface User {
   id: number
@@ -45,15 +51,46 @@ async function getCurrentUser(): Promise<User | null> {
   }
 }
 
-async function getStudentsByClass(): Promise<ClassSection[]> {
+async function getStudentsByClass(teacherId: number): Promise<ClassSection[]> {
   try {
-    const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/teacher/students`, {
-      credentials: 'include',  // 쿠키 포함
-      cache: 'no-store' // 실시간 데이터
+    const { data: students, error } = await supabase
+      .from('accounts')
+      .select('id, name, class_name, remaining_tickets')
+      .eq('role', 'student')
+      .order('class_name')
+      .order('name')
+
+    if (error) {
+      console.error('학생 데이터 조회 실패:', error)
+      return []
+    }
+
+    // 클래스별로 그룹화
+    const classSections: ClassSection[] = []
+    const classMap = new Map<string, StudentWithStats[]>()
+
+    students.forEach((student: any) => {
+      const className = student.class_name || '미분류'
+      if (!classMap.has(className)) {
+        classMap.set(className, [])
+      }
+      classMap.get(className)!.push({
+        id: student.id,
+        name: student.name,
+        class_name: student.class_name,
+        remaining_tickets: student.remaining_tickets || 0
+      })
     })
 
-    const data = await response.json()
-    return data.success ? data.classStats : []
+    // Map을 배열로 변환
+    classMap.forEach((students, className) => {
+      classSections.push({
+        class_name: className,
+        students
+      })
+    })
+
+    return classSections
   } catch (error) {
     console.error('학생 데이터 조회 실패:', error)
     return []
@@ -69,7 +106,7 @@ export default async function TeacherStudentsPage() {
     redirect('/login')
   }
 
-  const classSections = await getStudentsByClass()
+  const classSections = await getStudentsByClass(user.id)
 
   return (
     <div className="min-h-screen bg-gray-100">

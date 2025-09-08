@@ -1,6 +1,12 @@
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
+import { createClient } from '@supabase/supabase-js'
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+)
 
 interface User {
   id: number
@@ -60,13 +66,90 @@ async function getCurrentUser(): Promise<User | null> {
 
 async function getStudentDetail(studentId: string): Promise<StudentDetail | null> {
   try {
-    const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/teacher/students/${studentId}`, {
-      credentials: 'include',  // 쿠키 포함
-      cache: 'no-store' // 실시간 데이터
-    })
+    // 학생 기본 정보 조회
+    const { data: student, error: studentError } = await supabase
+      .from('accounts')
+      .select('id, name, class_name, remaining_tickets')
+      .eq('id', parseInt(studentId))
+      .eq('role', 'student')
+      .single()
 
-    const data = await response.json()
-    return data.success ? data.student : null
+    if (studentError || !student) {
+      console.error('학생 정보 조회 실패:', studentError)
+      return null
+    }
+
+    // 학생의 세션 히스토리 조회
+    const { data: sessions, error: sessionsError } = await supabase
+      .from('sessions')
+      .select(`
+        id,
+        status,
+        started_at,
+        completed_at,
+        created_at,
+        reservation:reservation_id (
+          slot:slot_id (
+            date,
+            session_period
+          )
+        ),
+        problem:problem_id (
+          title,
+          subject_area,
+          difficulty_level
+        ),
+        score:scores (
+          total_score
+        ),
+        feedback:feedbacks (
+          content
+        ),
+        reflection:student_reflections (
+          reflection_text
+        ),
+        checklist:checklist_items (
+          id,
+          is_checked
+        )
+      `)
+      .eq('reservation.student_id', parseInt(studentId))
+      .eq('status', 'completed')
+      .order('completed_at', { ascending: false })
+      .limit(20)
+
+    // 피드백 히스토리 포맷팅
+    const feedbackHistory: FeedbackHistory[] = (sessions || []).map((session: any) => ({
+      session_id: session.id,
+      date: session.reservation?.slot?.date || '',
+      block: session.reservation?.slot?.session_period === 'AM' ? 1 : 2,
+      problem_title: session.problem?.title || '문제 제목',
+      problem_subject_area: session.problem?.subject_area || '일반',
+      problem_difficulty_level: session.problem?.difficulty_level || 1,
+      score: session.score?.[0]?.total_score || null,
+      feedback: session.feedback?.[0]?.content || null,
+      reflection: session.reflection?.[0]?.reflection_text || null,
+      checklist_completed: session.checklist?.filter((item: any) => item.is_checked).length || 0,
+      checklist_total: session.checklist?.length || 0,
+      session_status: session.status,
+      created_at: session.created_at
+    }))
+
+    // 총 세션 수 계산
+    const { count: totalSessions } = await supabase
+      .from('sessions')
+      .select('*', { count: 'exact' })
+      .eq('reservation.student_id', parseInt(studentId))
+      .eq('status', 'completed')
+
+    return {
+      id: student.id,
+      name: student.name,
+      class_name: student.class_name,
+      remaining_tickets: student.remaining_tickets || 0,
+      total_sessions: totalSessions || 0,
+      feedback_history: feedbackHistory
+    }
   } catch (error) {
     console.error('학생 상세 정보 조회 실패:', error)
     return null
