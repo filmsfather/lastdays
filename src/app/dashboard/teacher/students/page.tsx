@@ -50,12 +50,12 @@ export default function TeacherStudentsPage() {
           router.push('/login')
           return
         }
-        const userData = await response.json()
-        if (userData.role !== 'teacher') {
+        const data = await response.json()
+        if (!data.success || !data.user || data.user.role !== 'teacher') {
           router.push('/login')
           return
         }
-        setUser(userData)
+        setUser(data.user)
       } catch (error) {
         console.error('Auth check failed:', error)
         router.push('/login')
