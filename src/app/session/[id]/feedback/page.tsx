@@ -1,6 +1,7 @@
-import { getCurrentUser } from '@/lib/auth'
-import { supabase } from '@/lib/supabase'
-import { redirect } from 'next/navigation'
+'use client'
+
+import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import FeedbackPageClient from './FeedbackPageClient'
 
 interface SessionFeedbackData {
@@ -60,253 +61,135 @@ interface SessionFeedbackData {
   } | null
 }
 
-export default async function SessionFeedbackPage({
+interface User {
+  id: number
+  role: string
+}
+
+export default function SessionFeedbackPage({
   params
 }: {
   params: Promise<{ id: string }>
 }) {
-  const resolvedParams = await params
-  const sessionId = parseInt(resolvedParams.id)
-  
-  if (isNaN(sessionId)) {
-    redirect('/dashboard/student')
+  const router = useRouter()
+  const [sessionData, setSessionData] = useState<SessionFeedbackData | null>(null)
+  const [currentUser, setCurrentUser] = useState<User | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        setLoading(true)
+        setError(null)
+
+        // 인증 확인
+        const authResponse = await fetch('/api/auth/me')
+        if (!authResponse.ok) {
+          router.push('/login')
+          return
+        }
+
+        const authData = await authResponse.json()
+        if (!authData.success || !authData.user) {
+          router.push('/login')
+          return
+        }
+
+        setCurrentUser({
+          id: authData.user.id,
+          role: authData.user.role
+        })
+
+        // 세션 데이터 조회
+        const resolvedParams = await params
+        const sessionId = parseInt(resolvedParams.id)
+        if (isNaN(sessionId)) {
+          router.push('/dashboard/student')
+          return
+        }
+
+        const feedbackResponse = await fetch(`/api/sessions/${sessionId}/feedback-data`)
+        if (!feedbackResponse.ok) {
+          if (feedbackResponse.status === 401) {
+            router.push('/login')
+            return
+          } else if (feedbackResponse.status === 403) {
+            router.push('/dashboard/student/history')
+            return
+          } else if (feedbackResponse.status === 404) {
+            router.push('/dashboard/student/history')
+            return
+          }
+          
+          const errorText = await feedbackResponse.text()
+          throw new Error(`세션 데이터 조회 실패: ${errorText}`)
+        }
+
+        const feedbackData = await feedbackResponse.json()
+        if (!feedbackData.success) {
+          throw new Error(feedbackData.error || '세션 데이터 조회 실패')
+        }
+
+        setSessionData(feedbackData.data)
+      } catch (error) {
+        console.error('Feedback page error:', error)
+        setError(error instanceof Error ? error.message : '알 수 없는 오류가 발생했습니다.')
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchData()
+  }, [params, router])
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+          <p className="text-gray-600">세션 데이터를 불러오는 중...</p>
+        </div>
+      </div>
+    )
   }
 
-  // 사용자 인증 확인
-  const currentUser = await getCurrentUser()
-  if (!currentUser) {
-    redirect('/login')
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+        <div className="bg-white rounded-lg shadow-md p-8 text-center max-w-md">
+          <div className="text-red-400 mb-4">
+            <svg className="mx-auto h-12 w-12" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+            </svg>
+          </div>
+          <h3 className="text-lg font-medium text-gray-600 mb-2">오류가 발생했습니다</h3>
+          <p className="text-gray-500 mb-4">{error}</p>
+          <button 
+            onClick={() => window.location.reload()}
+            className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors mr-2"
+          >
+            다시 시도
+          </button>
+          <button 
+            onClick={() => router.push('/dashboard/student/history')}
+            className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors"
+          >
+            히스토리로 돌아가기
+          </button>
+        </div>
+      </div>
+    )
   }
 
-  // 1단계: 세션 기본 정보 조회
-  const { data: session, error: sessionError } = await supabase
-    .from('sessions')
-    .select(`
-      id,
-      status,
-      started_at,
-      completed_at,
-      created_at,
-      updated_at,
-      reservation_id,
-      problem_id
-    `)
-    .eq('id', sessionId)
-    .single()
-
-  if (sessionError || !session) {
-    console.error('Session fetch error:', sessionError)
-    redirect('/dashboard/student/history')
-  }
-
-  // 2단계: 예약 정보 조회
-  const { data: reservation, error: reservationError } = await supabase
-    .from('reservations')
-    .select(`
-      id,
-      student_id,
-      slot:slot_id (
-        id,
-        date,
-        time_slot,
-        session_period,
-        teacher:teacher_id (
-          id,
-          name,
-          class_name
-        )
-      ),
-      student:student_id (
-        id,
-        name,
-        class_name
-      )
-    `)
-    .eq('id', session.reservation_id)
-    .single()
-
-  if (reservationError || !reservation) {
-    console.error('Reservation fetch error:', reservationError)
-    redirect('/dashboard/student/history')
-  }
-
-  // 3단계: 문제 정보 조회
-  const { data: problem, error: problemError } = await supabase
-    .from('problems')
-    .select(`
-      id,
-      title,
-      content,
-      limit_minutes,
-      available_date,
-      images,
-      preview_lead_time
-    `)
-    .eq('id', session.problem_id)
-    .single()
-
-  if (problemError || !problem) {
-    console.error('Problem fetch error:', problemError)
-    redirect('/dashboard/student/history')
-  }
-
-  // 4단계: 같은 날짜/블록/교사의 예약들을 가져와서 큐 위치 계산
-  const { data: queueData, error: queueError } = await supabase
-    .from('reservations')
-    .select(`
-      id,
-      created_at,
-      slot:slot_id (
-        date,
-        session_period,
-        teacher:teacher_id (id)
-      )
-    `)
-    .eq('slot.date', (reservation.slot as any).date)
-    .eq('slot.session_period', (reservation.slot as any).session_period)
-    .eq('slot.teacher_id', (reservation.slot as any).teacher.id)
-    .order('created_at', { ascending: true })
-
-  if (queueError) {
-    console.error('Queue calculation error:', queueError)
-    redirect('/dashboard/student/history')
-  }
-
-  // 큐 위치 계산 (1부터 시작)
-  const queuePosition = queueData.findIndex(r => r.id === reservation.id) + 1
-
-  if (queuePosition === 0) {
-    console.error('Reservation not found in queue')
-    redirect('/dashboard/student/history')
-  }
-
-  // 5단계: 스케줄링 계산
-  const blockStart = (reservation.slot as any).session_period === 'AM' ? 10 : 16 // 10:00 AM or 4:00 PM
-  const scheduledStartAt = new Date((reservation.slot as any).date)
-  scheduledStartAt.setHours(blockStart, 0, 0, 0)
-  scheduledStartAt.setMinutes(scheduledStartAt.getMinutes() + (queuePosition - 1) * 10)
-  
-  const now = new Date()
-  const previewLeadMinutes = problem.preview_lead_time || 10
-  const previewStartTime = new Date(scheduledStartAt.getTime() - previewLeadMinutes * 60000)
-  const waitingRoomTime = new Date(scheduledStartAt.getTime() - 5 * 60000) // 5분 전
-
-  // 세션 자동 종료 시간 계산
-  const sessionEndTime = new Date(scheduledStartAt.getTime() + problem.limit_minutes * 60000)
-  
-  // 시간 상태 판정
-  let timeStatus: 'before_preview' | 'preview_open' | 'waiting_room' | 'interview_ready' | 'session_closed'
-  let canShowProblem = false
-
-  if (now >= sessionEndTime) {
-    timeStatus = 'session_closed'
-    canShowProblem = true // 세션 종료 후에도 문제는 볼 수 있음
-  } else if (now < previewStartTime) {
-    timeStatus = 'before_preview'
-    canShowProblem = false
-  } else if (now >= previewStartTime && now < waitingRoomTime) {
-    timeStatus = 'preview_open'
-    canShowProblem = true
-  } else if (now >= waitingRoomTime && now < scheduledStartAt) {
-    timeStatus = 'waiting_room'
-    canShowProblem = false
-  } else {
-    timeStatus = 'interview_ready'
-    canShowProblem = true
-  }
-
-  // 권한 확인: 학생 본인, 담당 교사, 또는 관리자만 조회 가능
-  const isStudent = currentUser.role === 'student' && reservation.student_id === currentUser.id
-  const isTeacher = currentUser.role === 'teacher' && (reservation.slot as any).teacher.id === currentUser.id
-  const isAdmin = currentUser.role === 'admin'
-
-  if (!isStudent && !isTeacher && !isAdmin) {
-    redirect('/dashboard/student/history')
-  }
-
-  // 추가 데이터 조회 (단계별 조회로 수정)
-  const { data: scores, error: scoresError } = await supabase
-    .from('scores')
-    .select('*')
-    .eq('session_id', sessionId)
-    .single()
-
-  const { data: feedbacks, error: feedbacksError } = await supabase
-    .from('feedbacks')
-    .select('*')
-    .eq('session_id', sessionId)
-
-  const { data: checklistItems, error: checklistError } = await supabase
-    .from('checklist_items')
-    .select('*')
-    .eq('session_id', sessionId)
-    .order('created_at', { ascending: true })
-
-  const { data: studentReflection, error: reflectionError } = await supabase
-    .from('student_reflections')
-    .select('*')
-    .eq('session_id', sessionId)
-    .single()
-
-  // 문제 스냅샷 생성 (시간 기반 가시성 적용)
-  const problemSnapshot = canShowProblem ? {
-    id: problem.id,
-    title: problem.title,
-    content: problem.content,
-    limit_minutes: problem.limit_minutes,
-    available_date: problem.available_date,
-    images: problem.images || []
-  } : null
-
-  // 피드백 데이터 구성
-  const feedbackData: SessionFeedbackData = {
-    sessionId: session.id,
-    status: session.status,
-    startedAt: session.started_at,
-    completedAt: session.completed_at,
-    student: {
-      id: (reservation.student as any).id,
-      name: (reservation.student as any).name,
-      className: (reservation.student as any).class_name
-    },
-    teacher: {
-      id: (reservation.slot as any).teacher.id,
-      name: (reservation.slot as any).teacher.name,
-      className: (reservation.slot as any).teacher.class_name
-    },
-    slot: {
-      date: (reservation.slot as any).date,
-      session_period: (reservation.slot as any).session_period
-    },
-    scheduling: {
-      queuePosition,
-      scheduledStartAt: scheduledStartAt.toISOString(),
-      previewLeadMinutes,
-      canShowProblem,
-      timeStatus
-    },
-    problemSnapshot,
-    scores: scores ? {
-      practical_skills: scores.practical_skills,
-      major_knowledge: scores.major_knowledge,
-      major_suitability: scores.major_suitability,
-      attitude: scores.attitude
-    } : null,
-    teacherFeedback: feedbacks || [],
-    checklistItems: checklistItems || [],
-    studentReflection: studentReflection ? {
-      text: studentReflection.reflection_text,
-      updated_at: studentReflection.updated_at
-    } : null
+  if (!sessionData || !currentUser) {
+    return null
   }
 
   return (
     <FeedbackPageClient 
-      sessionData={feedbackData}
-      currentUser={{
-        id: currentUser.id,
-        role: currentUser.role
-      }}
+      sessionData={sessionData}
+      currentUser={currentUser}
     />
   )
 }
