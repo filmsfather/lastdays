@@ -69,6 +69,14 @@
       "namedRegex": "^/api/sessions/(?<nxtPid>[^/]+?)/feedback(?:/)?$"
     },
     {
+      "page": "/api/sessions/[id]/feedback-data",
+      "regex": "^/api/sessions/([^/]+?)/feedback\\-data(?:/)?$",
+      "routeKeys": {
+        "nxtPid": "nxtPid"
+      },
+      "namedRegex": "^/api/sessions/(?<nxtPid>[^/]+?)/feedback\\-data(?:/)?$"
+    },
+    {
       "page": "/api/sessions/[id]/reflection",
       "regex": "^/api/sessions/([^/]+?)/reflection(?:/)?$",
       "routeKeys": {

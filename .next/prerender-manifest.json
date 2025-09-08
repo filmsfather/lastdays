@@ -50,6 +50,30 @@
         "x-next-revalidate-tag-token"
       ]
     },
+    "/dashboard/student": {
+      "experimentalBypassFor": [
+        {
+          "type": "header",
+          "key": "next-action"
+        },
+        {
+          "type": "header",
+          "key": "content-type",
+          "value": "multipart/form-data;.*"
+        }
+      ],
+      "initialRevalidateSeconds": false,
+      "srcRoute": "/dashboard/student",
+      "dataRoute": "/dashboard/student.rsc",
+      "allowHeader": [
+        "host",
+        "x-matched-path",
+        "x-prerender-revalidate",
+        "x-prerender-revalidate-if-generated",
+        "x-next-revalidated-tags",
+        "x-next-revalidate-tag-token"
+      ]
+    },
     "/dashboard/admin/timeslot-management": {
       "experimentalBypassFor": [
         {
@@ -74,7 +98,7 @@
         "x-next-revalidate-tag-token"
       ]
     },
-    "/dashboard/student": {
+    "/dashboard/teacher/students": {
       "experimentalBypassFor": [
         {
           "type": "header",
@@ -87,8 +111,8 @@
         }
       ],
       "initialRevalidateSeconds": false,
-      "srcRoute": "/dashboard/student",
-      "dataRoute": "/dashboard/student.rsc",
+      "srcRoute": "/dashboard/teacher/students",
+      "dataRoute": "/dashboard/teacher/students.rsc",
       "allowHeader": [
         "host",
         "x-matched-path",
@@ -122,7 +146,7 @@
         "x-next-revalidate-tag-token"
       ]
     },
-    "/login": {
+    "/teacher/problems/new": {
       "experimentalBypassFor": [
         {
           "type": "header",
@@ -135,8 +159,8 @@
         }
       ],
       "initialRevalidateSeconds": false,
-      "srcRoute": "/login",
-      "dataRoute": "/login.rsc",
+      "srcRoute": "/teacher/problems/new",
+      "dataRoute": "/teacher/problems/new.rsc",
       "allowHeader": [
         "host",
         "x-matched-path",
@@ -170,7 +194,7 @@
         "x-next-revalidate-tag-token"
       ]
     },
-    "/teacher/problems/new": {
+    "/login": {
       "experimentalBypassFor": [
         {
           "type": "header",
@@ -183,8 +207,8 @@
         }
       ],
       "initialRevalidateSeconds": false,
-      "srcRoute": "/teacher/problems/new",
-      "dataRoute": "/teacher/problems/new.rsc",
+      "srcRoute": "/login",
+      "dataRoute": "/login.rsc",
       "allowHeader": [
         "host",
         "x-matched-path",

@@ -34,7 +34,7 @@ export async function createSession(user: User): Promise<string> {
   // 세션 토큰 쿠키 설정
   cookieStore.set('session', sessionToken, {
     httpOnly: true,
-    secure: true,
+    secure: process.env.NODE_ENV === 'production',
     sameSite: 'lax',
     expires: expiresAt,
     path: '/'
@@ -50,11 +50,14 @@ export async function createSession(user: User): Promise<string> {
 
   cookieStore.set('user', JSON.stringify(userInfo), {
     httpOnly: true,
-    secure: true,
+    secure: process.env.NODE_ENV === 'production',
     sameSite: 'lax',
     expires: expiresAt,
     path: '/'
   })
+
+  console.log('Session created with token:', sessionToken.substring(0, 8) + '...')
+  console.log('User info saved:', { id: user.id, role: user.role })
 
   return sessionToken
 }
@@ -62,22 +65,32 @@ export async function createSession(user: User): Promise<string> {
 // 현재 세션에서 사용자 정보 조회
 export async function getCurrentUser(): Promise<User | null> {
   try {
+    console.log('getCurrentUser() called')
     const cookieStore = await cookies()
     const sessionCookie = cookieStore.get('session')
     const userCookie = cookieStore.get('user')
 
+    console.log('Cookies found:', {
+      session: sessionCookie ? 'exists' : 'missing',
+      user: userCookie ? 'exists' : 'missing'
+    })
+
     if (!sessionCookie || !userCookie) {
+      console.log('Missing cookies, returning null')
       return null
     }
 
     // 세션 토큰 검증 (실제로는 데이터베이스에서 확인해야 하지만 여기서는 쿠키 존재만 확인)
     const userInfo = JSON.parse(userCookie.value)
+    console.log('Parsed user info:', userInfo)
     
     // 사용자 정보 유효성 검증
     if (!userInfo.id || !userInfo.name || !userInfo.className || !userInfo.role) {
+      console.log('Invalid user info structure, returning null')
       return null
     }
 
+    console.log('Valid user found:', { id: userInfo.id, role: userInfo.role })
     return {
       id: userInfo.id,
       name: userInfo.name,
@@ -97,7 +110,7 @@ export async function deleteSession(): Promise<void> {
   // 세션 쿠키 삭제
   cookieStore.set('session', '', {
     httpOnly: true,
-    secure: true,
+    secure: process.env.NODE_ENV === 'production',
     sameSite: 'lax',
     expires: new Date(0), // 즉시 만료
     path: '/'
@@ -106,7 +119,7 @@ export async function deleteSession(): Promise<void> {
   // 사용자 정보 쿠키 삭제
   cookieStore.set('user', '', {
     httpOnly: true,
-    secure: true,
+    secure: process.env.NODE_ENV === 'production',
     sameSite: 'lax',
     expires: new Date(0), // 즉시 만료
     path: '/'
