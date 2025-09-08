@@ -197,6 +197,8 @@ export default function SessionFeedbackPage({
     )
   }
 
+  // 임시로 주석 처리
+  /*
   if (!sessionData || !currentUser) {
     return null
   }
@@ -207,4 +209,5 @@ export default function SessionFeedbackPage({
       currentUser={currentUser}
     />
   )
+  */
 }
