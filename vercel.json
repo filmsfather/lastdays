@@ -6,19 +6,7 @@
   },
   "rewrites": [
     {
-      "source": "/dashboard/:path*",
-      "destination": "/"
-    },
-    {
-      "source": "/teacher/:path*", 
-      "destination": "/"
-    },
-    {
-      "source": "/session/:path*",
-      "destination": "/"
-    },
-    {
-      "source": "/login",
+      "source": "/((?!api|_next|favicon.ico).*)",
       "destination": "/"
     }
   ]
