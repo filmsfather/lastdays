@@ -1,12 +1,8 @@
-import { cookies } from 'next/headers'
-import { redirect } from 'next/navigation'
-import Link from 'next/link'
-import { createClient } from '@supabase/supabase-js'
+'use client'
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
+import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 
 interface User {
   id: number
@@ -27,86 +23,109 @@ interface ClassSection {
   students: StudentWithStats[]
 }
 
-async function getCurrentUser(): Promise<User | null> {
-  try {
-    const cookieStore = await cookies()
-    const sessionCookie = cookieStore.get('session')
-    const userCookie = cookieStore.get('user')
-    
-    if (!sessionCookie || !userCookie) {
-      return null
-    }
-
-    const userInfo = JSON.parse(userCookie.value)
-    
-    return {
-      id: userInfo.id,
-      name: userInfo.name,
-      class_name: userInfo.className,
-      role: userInfo.role
-    }
-  } catch (error) {
-    console.error('사용자 정보 조회 실패:', error)
-    return null
+interface ApiResponse {
+  success: boolean
+  classStats: ClassSection[]
+  summary: {
+    totalClasses: number
+    totalStudents: number
+    totalTickets: number
+    averageTickets: number
   }
+  error?: string
 }
 
-async function getStudentsByClass(teacherId: number): Promise<ClassSection[]> {
-  try {
-    const { data: students, error } = await supabase
-      .from('accounts')
-      .select('id, name, class_name, remaining_tickets')
-      .eq('role', 'student')
-      .order('class_name')
-      .order('name')
+export default function TeacherStudentsPage() {
+  const router = useRouter()
+  const [user, setUser] = useState<User | null>(null)
+  const [classSections, setClassSections] = useState<ClassSection[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
-    if (error) {
-      console.error('학생 데이터 조회 실패:', error)
-      return []
-    }
-
-    // 클래스별로 그룹화
-    const classSections: ClassSection[] = []
-    const classMap = new Map<string, StudentWithStats[]>()
-
-    students.forEach((student: any) => {
-      const className = student.class_name || '미분류'
-      if (!classMap.has(className)) {
-        classMap.set(className, [])
+  useEffect(() => {
+    async function checkAuth() {
+      try {
+        const response = await fetch('/api/auth/me')
+        if (!response.ok) {
+          router.push('/login')
+          return
+        }
+        const userData = await response.json()
+        if (userData.role !== 'teacher') {
+          router.push('/login')
+          return
+        }
+        setUser(userData)
+      } catch (error) {
+        console.error('Auth check failed:', error)
+        router.push('/login')
       }
-      classMap.get(className)!.push({
-        id: student.id,
-        name: student.name,
-        class_name: student.class_name,
-        remaining_tickets: student.remaining_tickets || 0
-      })
-    })
+    }
 
-    // Map을 배열로 변환
-    classMap.forEach((students, className) => {
-      classSections.push({
-        class_name: className,
-        students
-      })
-    })
+    checkAuth()
+  }, [router])
 
-    return classSections
-  } catch (error) {
-    console.error('학생 데이터 조회 실패:', error)
-    return []
+  useEffect(() => {
+    async function fetchStudents() {
+      if (!user) return
+
+      try {
+        setLoading(true)
+        setError(null)
+        
+        const response = await fetch('/api/teacher/students')
+        const data: ApiResponse = await response.json()
+
+        if (!response.ok || !data.success) {
+          throw new Error(data.error || '학생 데이터를 불러오는데 실패했습니다.')
+        }
+
+        setClassSections(data.classStats)
+      } catch (error) {
+        console.error('학생 데이터 조회 실패:', error)
+        setError(error instanceof Error ? error.message : '알 수 없는 오류가 발생했습니다.')
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchStudents()
+  }, [user])
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+          <p className="text-gray-600">학생 데이터를 불러오는 중...</p>
+        </div>
+      </div>
+    )
   }
-}
 
-// 배지 시스템 제거됨
-
-export default async function TeacherStudentsPage() {
-  const user = await getCurrentUser()
-  
-  if (!user || user.role !== 'teacher') {
-    redirect('/login')
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+        <div className="bg-white rounded-lg shadow-md p-8 text-center max-w-md">
+          <div className="text-red-400 mb-4">
+            <svg className="mx-auto h-12 w-12" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+            </svg>
+          </div>
+          <h3 className="text-lg font-medium text-gray-600 mb-2">오류가 발생했습니다</h3>
+          <p className="text-gray-500 mb-4">{error}</p>
+          <button 
+            onClick={() => window.location.reload()}
+            className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+          >
+            다시 시도
+          </button>
+        </div>
+      </div>
+    )
   }
 
-  const classSections = await getStudentsByClass(user.id)
+  if (!user) return null
 
   return (
     <div className="min-h-screen bg-gray-100">
