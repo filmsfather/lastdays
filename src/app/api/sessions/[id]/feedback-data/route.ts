@@ -159,10 +159,18 @@ export async function GET(
     // 5단계: 스케줄링 계산
     const blockStart = (reservation.slot as any).session_period === 'AM' ? 10 : 16 // 10:00 AM or 4:00 PM
     // 한국 시간대 기준으로 예약 시작 시간 설정
-    const koreanDate = new Date(new Date((reservation.slot as any).date + 'T00:00:00').toLocaleString('en-US', { timeZone: 'Asia/Seoul' }))
-    const scheduledStartAt = new Date(koreanDate)
+    const slotDate = (reservation.slot as any).date
+    const scheduledStartAt = new Date(slotDate + 'T00:00:00+09:00') // 한국 시간대로 명시적 설정
     scheduledStartAt.setHours(blockStart, 0, 0, 0)
     scheduledStartAt.setMinutes(scheduledStartAt.getMinutes() + (queuePosition - 1) * 10)
+    
+    // 디버그 로그
+    console.log('=== 시간 계산 디버그 ===')
+    console.log('slotDate:', slotDate)
+    console.log('session_period:', (reservation.slot as any).session_period)
+    console.log('blockStart:', blockStart)
+    console.log('queuePosition:', queuePosition)
+    console.log('scheduledStartAt:', scheduledStartAt.toISOString())
     
     // 한국 시간대 기준으로 현재 시간 가져오기
     const now = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Seoul' }))
@@ -170,8 +178,15 @@ export async function GET(
     const previewStartTime = new Date(scheduledStartAt.getTime() - previewLeadMinutes * 60000)
     const waitingRoomTime = new Date(scheduledStartAt.getTime() - 5 * 60000) // 5분 전
 
-    // 세션 자동 종료 시간 계산
-    const sessionEndTime = new Date(scheduledStartAt.getTime() + problem.limit_minutes * 60000)
+    // 면접 시간은 고정 10분으로 설정
+    const INTERVIEW_DURATION_MINUTES = 10
+    const sessionEndTime = new Date(scheduledStartAt.getTime() + INTERVIEW_DURATION_MINUTES * 60000)
+    
+    // 추가 디버그 로그
+    console.log('now:', now.toISOString())
+    console.log('previewLeadMinutes:', previewLeadMinutes)
+    console.log('previewStartTime:', previewStartTime.toISOString())
+    console.log('sessionEndTime:', sessionEndTime.toISOString())
     
     // 시간 상태 판정
     let timeStatus: 'before_preview' | 'preview_open' | 'waiting_room' | 'interview_ready' | 'session_closed'
@@ -223,7 +238,6 @@ export async function GET(
       id: problem.id,
       title: problem.title,
       content: problem.content,
-      limit_minutes: problem.limit_minutes,
       available_date: problem.available_date,
       images: problem.images || []
     } : null

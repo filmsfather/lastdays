@@ -54,10 +54,9 @@ export async function POST(req: NextRequest) {
     const { 
       title, 
       content, 
-      limit_minutes,
       available_date,
       is_public = false,
-      preview_lead_time = 24,
+      preview_lead_time = 10,
       images = []
     } = body
 
@@ -69,9 +68,9 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    if (!limit_minutes || limit_minutes < 1 || limit_minutes > 300) {
+    if (!preview_lead_time || preview_lead_time < 1 || preview_lead_time > 60) {
       return NextResponse.json(
-        { error: '제한시간은 1-300분 사이의 값이어야 합니다.' },
+        { error: '사전열람 시간은 1-60분 사이의 값이어야 합니다.' },
         { status: 400 }
       )
     }
@@ -83,12 +82,6 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    if (preview_lead_time < 0) {
-      return NextResponse.json(
-        { error: '사전열람 시간은 0 이상이어야 합니다.' },
-        { status: 400 }
-      )
-    }
 
     // 이미지 배열 유효성 검증
     if (images && !Array.isArray(images)) {
@@ -120,7 +113,6 @@ export async function POST(req: NextRequest) {
       .insert([{
         title,
         content,
-        limit_minutes,
         available_date,
         status: is_public ? 'published' : 'draft',
         preview_lead_time,

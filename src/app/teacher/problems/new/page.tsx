@@ -8,7 +8,7 @@ export default function NewProblemPage() {
   const [formData, setFormData] = useState({
     title: '',
     content: '',
-    limit_minutes: 60, // 기본값 1시간
+    preview_lead_time: 10, // 기본값 10분 (사전열람 시간)
     available_date: '', // 문제 공개 날짜
     is_public: false
   })
@@ -120,7 +120,7 @@ export default function NewProblemPage() {
     setFormData({
       ...formData,
       [name]: type === 'checkbox' ? (e.target as HTMLInputElement).checked : 
-               type === 'number' || name === 'limit_minutes' ? parseInt(value) || 0 : value
+               type === 'number' || name === 'preview_lead_time' ? parseInt(value) || 0 : value
     })
   }
 
@@ -169,27 +169,27 @@ export default function NewProblemPage() {
               </div>
 
               <div>
-                <label htmlFor="limit_minutes" className="block text-sm font-medium text-gray-700 mb-1">
-                  제한시간 *
+                <label htmlFor="preview_lead_time" className="block text-sm font-medium text-gray-700 mb-1">
+                  사전열람 시간 *
                 </label>
                 <div className="relative">
                   <input
                     type="number"
-                    id="limit_minutes"
-                    name="limit_minutes"
-                    value={formData.limit_minutes}
+                    id="preview_lead_time"
+                    name="preview_lead_time"
+                    value={formData.preview_lead_time}
                     onChange={handleInputChange}
                     required
                     min="1"
-                    max="300"
+                    max="60"
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="60"
+                    placeholder="10"
                   />
                   <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
                     <span className="text-gray-500 text-sm">분</span>
                   </div>
                 </div>
-                <p className="mt-1 text-xs text-gray-500">1분 ~ 300분 (5시간)</p>
+                <p className="mt-1 text-xs text-gray-500">면접 시작 전 문제를 볼 수 있는 시간 (1~60분)</p>
               </div>
 
               <div>
@@ -333,7 +333,7 @@ export default function NewProblemPage() {
           <h4 className="font-medium text-blue-800 mb-2">문제 등록 가이드</h4>
           <div className="text-sm text-blue-700 space-y-1">
             <p>• 문제 제목은 간결하고 명확하게 작성하세요</p>
-            <p>• 제한시간은 실기 진행 시간으로, 학생이 문제를 푸는데 소요될 시간을 설정하세요</p>
+            <p>• 사전열람 시간은 면접 시작 전에 학생이 문제를 미리 볼 수 있는 시간입니다</p>
             <p>• 공개 날짜는 학생들이 해당 문제를 선택할 수 있는 날짜입니다</p>
             <p>• 문제 내용에는 필요한 조건과 요구사항을 명확히 기술하세요</p>
             <p>• 이미지는 문제 이해를 돕는 도식, 그래프, 표 등을 첨부할 때 사용하세요</p>

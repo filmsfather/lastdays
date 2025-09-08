@@ -125,7 +125,9 @@ export async function GET() {
           scheduledStartAt.setHours(blockStart, 0, 0, 0)
           scheduledStartAt.setMinutes(scheduledStartAt.getMinutes() + (queuePosition - 1) * 10)
           
-          const sessionEndTime = new Date(scheduledStartAt.getTime() + problem.limit_minutes * 60000)
+          // 면접 시간은 고정 10분으로 설정
+          const INTERVIEW_DURATION_MINUTES = 10
+          const sessionEndTime = new Date(scheduledStartAt.getTime() + INTERVIEW_DURATION_MINUTES * 60000)
           
           if (now >= sessionEndTime) {
             expiredSessionIds.push(session.id)
@@ -218,7 +220,7 @@ export async function GET() {
         // 문제 정보 조회
         const { data: problem } = await supabase
           .from('problems')
-          .select('title, limit_minutes')
+          .select('title')
           .eq('id', session.problem_id)
           .single()
 
@@ -231,7 +233,6 @@ export async function GET() {
           teacherName: (reservation?.slot as any)?.teacher?.name || null,
           teacherClass: (reservation?.slot as any)?.teacher?.class_name || null,
           problemTitle: problem?.title || '문제 제목',
-          limitMinutes: problem?.limit_minutes || 60,
           hasScore: !!score,
           finalScore: score ? 'complete' : 'incomplete',
           hasFeedback: !!feedback,
