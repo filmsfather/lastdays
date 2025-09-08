@@ -116,6 +116,7 @@ export async function POST(req: NextRequest) {
         available_date,
         status: is_public ? 'published' : 'draft',
         preview_lead_time,
+        limit_minutes: 60, // 임시로 기본값 추가 (DB 호환성)
         images: images || [],
         created_by: user.id
       }])
@@ -124,8 +125,18 @@ export async function POST(req: NextRequest) {
 
     if (error) {
       console.error('Database error:', error)
+      console.error('Insert data:', {
+        title,
+        content,
+        available_date,
+        status: is_public ? 'published' : 'draft',
+        preview_lead_time,
+        limit_minutes: 60,
+        images: images || [],
+        created_by: user.id
+      })
       return NextResponse.json(
-        { error: '문제 생성 중 오류가 발생했습니다.' },
+        { error: `문제 생성 중 오류가 발생했습니다: ${error.message}` },
         { status: 500 }
       )
     }
