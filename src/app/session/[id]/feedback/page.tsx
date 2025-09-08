@@ -71,6 +71,7 @@ export default function SessionFeedbackPage({
 }: {
   params: Promise<{ id: string }>
 }) {
+  console.log('SessionFeedbackPage component mounted')
   const router = useRouter()
   const [sessionData, setSessionData] = useState<SessionFeedbackData | null>(null)
   const [currentUser, setCurrentUser] = useState<User | null>(null)
@@ -78,8 +79,10 @@ export default function SessionFeedbackPage({
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
+    console.log('Feedback page useEffect started')
     async function fetchData() {
       try {
+        console.log('Starting fetchData function')
         setLoading(true)
         setError(null)
 
@@ -142,6 +145,18 @@ export default function SessionFeedbackPage({
 
     fetchData()
   }, [params, router])
+
+  // 임시 테스트용 - 항상 이 내용을 표시
+  return (
+    <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+      <div className="text-center">
+        <h1 className="text-2xl font-bold">피드백 페이지 테스트</h1>
+        <p>세션 ID: {JSON.stringify(params)}</p>
+        <p>로딩 상태: {loading ? '로딩중' : '완료'}</p>
+        <p>현재 사용자: {currentUser ? JSON.stringify(currentUser) : '없음'}</p>
+      </div>
+    </div>
+  )
 
   if (loading) {
     return (
