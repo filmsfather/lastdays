@@ -14,19 +14,18 @@ interface User {
 interface Problem {
   id: number
   title: string
-  subject_area: string
-  difficulty_level: number
+  limit_minutes: number
+  available_date: string
+  preview_lead_time: number
   status: 'draft' | 'published' | 'archived'
   created_at: string
   updated_at: string
-  usage_count?: number
 }
 
 interface DashboardStats {
   total_problems: number
   public_problems: number
   private_problems: number
-  total_usage: number
   todays_sessions: number
   active_reservations: number
 }
@@ -39,11 +38,14 @@ export default function TeacherDashboardPage() {
     total_problems: 0,
     public_problems: 0,
     private_problems: 0,
-    total_usage: 0,
     todays_sessions: 0,
     active_reservations: 0
   })
   const [loading, setLoading] = useState(true)
+  const [showPinChangeModal, setShowPinChangeModal] = useState(false)
+  const [currentPin, setCurrentPin] = useState('')
+  const [newPin, setNewPin] = useState('')
+  const [pinChangeLoading, setPinChangeLoading] = useState(false)
 
   // 현재 사용자 정보 조회
   useEffect(() => {
@@ -155,11 +157,56 @@ export default function TeacherDashboardPage() {
     }
   }
 
-  // 난이도 색상
-  const getDifficultyColor = (level: number) => {
-    if (level <= 2) return 'bg-green-100 text-green-700'
-    if (level <= 3) return 'bg-yellow-100 text-yellow-700'
-    return 'bg-red-100 text-red-700'
+  // PIN 변경
+  const changePin = async () => {
+    if (!currentPin || !newPin) {
+      toast.error('현재 PIN과 새 PIN을 모두 입력해주세요.')
+      return
+    }
+
+    if (newPin.length !== 4 || !/^\d{4}$/.test(newPin)) {
+      toast.error('새 PIN은 4자리 숫자여야 합니다.')
+      return
+    }
+
+    setPinChangeLoading(true)
+
+    try {
+      const response = await fetch('/api/change-pin', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          currentPin,
+          newPin
+        }),
+      })
+
+      const data = await response.json()
+
+      if (data.success) {
+        toast.success('PIN이 성공적으로 변경되었습니다.')
+        setShowPinChangeModal(false)
+        setCurrentPin('')
+        setNewPin('')
+      } else {
+        toast.error(data.error || 'PIN 변경에 실패했습니다.')
+      }
+    } catch (error) {
+      console.error('PIN 변경 실패:', error)
+      toast.error('PIN 변경 중 오류가 발생했습니다.')
+    } finally {
+      setPinChangeLoading(false)
+    }
+  }
+
+  // 날짜 포맷팅 (YYYY-MM-DD 형식을 MM/DD로 표시)
+  const formatAvailableDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('ko-KR', {
+      month: 'numeric',
+      day: 'numeric'
+    })
   }
 
   // 날짜 포맷팅
@@ -195,6 +242,12 @@ export default function TeacherDashboardPage() {
               <p className="text-gray-600">{user?.name} 선생님 • {user?.class_name}</p>
             </div>
             <div className="flex space-x-4">
+              <button
+                onClick={() => setShowPinChangeModal(true)}
+                className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors"
+              >
+                PIN 변경
+              </button>
               <Link 
                 href="/dashboard/teacher/today"
                 className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
@@ -255,9 +308,9 @@ export default function TeacherDashboardPage() {
                     <p className="text-sm text-green-600 mt-1">대기 중인 예약</p>
                   </div>
                   <div className="bg-purple-50 rounded-lg p-6">
-                    <h3 className="text-lg font-semibold text-purple-800 mb-2">문제 사용</h3>
-                    <p className="text-3xl font-bold text-purple-600">{stats.total_usage}회</p>
-                    <p className="text-sm text-purple-600 mt-1">누적 사용 횟수</p>
+                    <h3 className="text-lg font-semibold text-purple-800 mb-2">전체 문제</h3>
+                    <p className="text-3xl font-bold text-purple-600">{stats.total_problems}개</p>
+                    <p className="text-sm text-purple-600 mt-1">등록된 문제 수</p>
                   </div>
                 </div>
 
@@ -372,13 +425,16 @@ export default function TeacherDashboardPage() {
                               문제 정보
                             </th>
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                              난이도/분야
+                              제한시간
                             </th>
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                              공개 상태
+                              공개 날짜
                             </th>
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                              사용 횟수
+                              사전열람
+                            </th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              활성 상태
                             </th>
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                               등록일
@@ -402,14 +458,19 @@ export default function TeacherDashboardPage() {
                                 </div>
                               </td>
                               <td className="px-6 py-4 whitespace-nowrap">
-                                <div className="flex items-center space-x-2">
-                                  <span className={`px-2 py-1 text-xs rounded ${getDifficultyColor(problem.difficulty_level)}`}>
-                                    난이도 {problem.difficulty_level}
-                                  </span>
-                                  <span className="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded">
-                                    {problem.subject_area}
-                                  </span>
-                                </div>
+                                <span className="text-sm font-medium text-gray-900">
+                                  {problem.limit_minutes}분
+                                </span>
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap">
+                                <span className="text-sm text-gray-500">
+                                  {formatAvailableDate(problem.available_date)}
+                                </span>
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap">
+                                <span className="text-sm text-gray-500">
+                                  {problem.preview_lead_time}분 전
+                                </span>
                               </td>
                               <td className="px-6 py-4 whitespace-nowrap">
                                 <button
@@ -425,13 +486,8 @@ export default function TeacherDashboardPage() {
                                   />
                                 </button>
                                 <div className="text-xs text-gray-500 mt-1">
-                                  {problem.status === 'published' ? '공개' : problem.status === 'draft' ? '초안' : '보관'}
+                                  {problem.status === 'published' ? '활성' : problem.status === 'draft' ? '비활성' : '보관'}
                                 </div>
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap">
-                                <span className="text-sm font-medium text-gray-900">
-                                  {problem.usage_count}회
-                                </span>
                               </td>
                               <td className="px-6 py-4 whitespace-nowrap">
                                 <span className="text-sm text-gray-500">
@@ -446,7 +502,7 @@ export default function TeacherDashboardPage() {
                                   보기
                                 </button>
                                 <button
-                                  onClick={() => window.location.href = `/teacher/problems/${problem.id}/edit`}
+                                  onClick={() => window.location.href = `/teacher/problems/${problem.id}`}
                                   className="text-gray-600 hover:text-gray-900"
                                 >
                                   수정
@@ -469,11 +525,98 @@ export default function TeacherDashboardPage() {
           <h4 className="font-medium text-blue-800 mb-2">도움말</h4>
           <div className="text-sm text-blue-700 space-y-1">
             <p>• <strong>대시보드 개요</strong>: 오늘의 수업 현황과 전체 통계를 확인할 수 있습니다</p>
-            <p>• <strong>문제 관리</strong>: 등록한 문제의 공개/비공개 상태를 관리하고 사용 통계를 확인할 수 있습니다</p>
-            <p>• 공개된 문제만 학생들이 선택할 수 있으며, 비공개 문제는 목록에 표시되지 않습니다</p>
+            <p>• <strong>문제 관리</strong>: 등록한 문제의 활성/비활성 상태를 관리하고 제한시간, 공개날짜, 사전열람시간을 확인할 수 있습니다</p>
+            <p>• 활성 상태의 문제만 학생들이 선택할 수 있으며, 비활성 문제는 목록에 표시되지 않습니다</p>
           </div>
         </div>
       </div>
+
+      {/* PIN 변경 모달 */}
+      {showPinChangeModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 px-4">
+          <div className="bg-white rounded-3xl p-8 w-full max-w-md shadow-2xl">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-2xl font-bold text-gray-900">PIN 변경</h3>
+              <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center">
+                <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m0 0a2 2 0 012 2m-2-2a2 2 0 00-2 2m2 2v2a2 2 0 01-2 2m-2-2a2 2 0 01-2-2m2-2a2 2 0 012-2m0 0V5a2 2 0 00-2-2m-4 6V4a1 1 0 011-1h4a1 1 0 011 1v2m-6 0a1 1 0 00-1 1v4a1 1 0 001 1m-1-5h2m5 0h2" />
+                </svg>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  현재 PIN
+                </label>
+                <input
+                  type="password"
+                  maxLength={4}
+                  value={currentPin}
+                  onChange={(e) => setCurrentPin(e.target.value.replace(/[^0-9]/g, ''))}
+                  placeholder="현재 4자리 PIN 입력"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all text-center text-lg font-mono"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  새로운 PIN
+                </label>
+                <input
+                  type="password"
+                  maxLength={4}
+                  value={newPin}
+                  onChange={(e) => setNewPin(e.target.value.replace(/[^0-9]/g, ''))}
+                  placeholder="새로운 4자리 PIN 입력"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all text-center text-lg font-mono"
+                />
+              </div>
+
+              <div className="text-sm text-gray-500 p-3 bg-yellow-50 rounded-lg border border-yellow-200">
+                <p className="flex items-center">
+                  <svg className="w-4 h-4 text-yellow-600 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.876c1.242 0 2.135-1.13 1.73-2.261L13.956 4.016a1.969 1.969 0 00-3.913 0L3.332 16.739C2.927 17.87 3.82 19 5.062 19z" />
+                  </svg>
+                  PIN은 4자리 숫자여야 하며, 동일한 이름+PIN 조합이 없어야 합니다.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex space-x-4 mt-8">
+              <button
+                onClick={() => {
+                  setShowPinChangeModal(false)
+                  setCurrentPin('')
+                  setNewPin('')
+                }}
+                className="flex-1 py-3 px-6 border border-gray-300 rounded-xl text-gray-700 font-medium hover:bg-gray-50 transition-colors"
+                disabled={pinChangeLoading}
+              >
+                취소
+              </button>
+              <button
+                onClick={changePin}
+                disabled={!currentPin || !newPin || currentPin.length !== 4 || newPin.length !== 4 || pinChangeLoading}
+                className={`flex-1 py-3 px-6 rounded-xl font-semibold transition-all duration-200 ${
+                  currentPin && newPin && currentPin.length === 4 && newPin.length === 4 && !pinChangeLoading
+                    ? 'bg-blue-600 text-white hover:bg-blue-700'
+                    : 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                }`}
+              >
+                {pinChangeLoading ? (
+                  <div className="flex items-center justify-center">
+                    <div className="w-5 h-5 border-2 border-gray-400 border-t-white rounded-full animate-spin mr-2"></div>
+                    변경 중...
+                  </div>
+                ) : (
+                  'PIN 변경'
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

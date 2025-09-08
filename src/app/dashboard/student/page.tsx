@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { toast } from 'react-hot-toast'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 
 interface User {
   id: number
@@ -52,22 +53,52 @@ interface Reservation {
 interface Problem {
   id: number
   title: string
-  difficulty_level: number
-  subject_area: string
+  limit_minutes: number
+  available_date: string
+  preview_lead_time: number
+  created_at: string
+  creator: {
+    name: string
+    class_name: string
+  }
+}
+
+interface Session {
+  id: number
+  status: 'active' | 'feedback_pending' | 'completed'
+  date: string
+  timeSlot: string
+  sessionPeriod: 'AM' | 'PM'
+  teacherName: string
+  teacherClass: string
+  problemTitle: string
+  limitMinutes: number
+  hasScore: boolean
+  finalScore?: number
+  hasFeedback: boolean
+  hasReflection: boolean
+  createdAt: string
+  startedAt?: string
 }
 
 export default function StudentDashboard() {
+  const router = useRouter()
   const [user, setUser] = useState<User | null>(null)
   const [remainingTickets, setRemainingTickets] = useState(0)
   const [slots, setSlots] = useState<Slot[]>([])
   const [reservations, setReservations] = useState<Reservation[]>([])
   const [problems, setProblems] = useState<Problem[]>([])
+  const [sessions, setSessions] = useState<Session[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedSlot, setSelectedSlot] = useState<number | null>(null)
   const [currentWeekStart, setCurrentWeekStart] = useState<Date>(new Date())
   const [selectedProblem, setSelectedProblem] = useState<number | null>(null)
   const [showProblemModal, setShowProblemModal] = useState(false)
   const [currentReservationId, setCurrentReservationId] = useState<number | null>(null)
+  const [showPinChangeModal, setShowPinChangeModal] = useState(false)
+  const [currentPin, setCurrentPin] = useState('')
+  const [newPin, setNewPin] = useState('')
+  const [pinChangeLoading, setPinChangeLoading] = useState(false)
 
   // 현재 사용자 정보 조회
   useEffect(() => {
@@ -134,7 +165,8 @@ export default function StudentDashboard() {
           fetchTickets(),
           fetchWeekSlots(),
           fetchReservations(),
-          fetchProblems()
+          fetchProblems(), // 초기 로드시에는 모든 문제를 가져옴
+          fetchSessions()
         ])
       } catch (error) {
         console.error('데이터 로드 실패:', error)
@@ -195,10 +227,11 @@ export default function StudentDashboard() {
     }
   }
 
-  // 공개된 문제 조회
-  const fetchProblems = async () => {
+  // 공개된 문제 조회 (특정 날짜 기준)
+  const fetchProblems = async (date?: string) => {
     try {
-      const response = await fetch('/api/student/problems')
+      const url = date ? `/api/student/problems?date=${date}` : '/api/student/problems'
+      const response = await fetch(url)
       const data = await response.json()
       
       if (data.success) {
@@ -206,6 +239,26 @@ export default function StudentDashboard() {
       }
     } catch (error) {
       console.error('문제 조회 실패:', error)
+    }
+  }
+
+  // 학생 세션 조회
+  const fetchSessions = async () => {
+    try {
+      console.log('Fetching sessions...')
+      const response = await fetch('/api/student/sessions')
+      const data = await response.json()
+      
+      console.log('Sessions response:', data)
+      
+      if (data.success) {
+        setSessions(data.sessions || [])
+        console.log('Sessions loaded:', data.sessions?.length || 0)
+      } else {
+        console.error('Sessions fetch failed:', data.error)
+      }
+    } catch (error) {
+      console.error('세션 조회 실패:', error)
     }
   }
 
@@ -290,7 +343,15 @@ export default function StudentDashboard() {
         setShowProblemModal(false)
         setSelectedProblem(null)
         setCurrentReservationId(null)
-        await fetchReservations()
+        
+        // 세션 목록 업데이트
+        await Promise.all([fetchReservations(), fetchSessions()])
+        
+        // 세션이 생성되면 피드백 페이지로 이동
+        if (data.session?.id || data.sessionId) {
+          const sessionId = data.session?.id || data.sessionId
+          router.push(`/session/${sessionId}/feedback`)
+        }
       } else {
         toast.error(data.error || '문제 선택에 실패했습니다.')
       }
@@ -304,6 +365,50 @@ export default function StudentDashboard() {
   const isTodayReservation = (reservation: Reservation) => {
     const today = new Date().toISOString().split('T')[0]
     return reservation.slot.date === today
+  }
+
+  // PIN 변경
+  const changePin = async () => {
+    if (!currentPin || !newPin) {
+      toast.error('현재 PIN과 새 PIN을 모두 입력해주세요.')
+      return
+    }
+
+    if (newPin.length !== 4 || !/^\d{4}$/.test(newPin)) {
+      toast.error('새 PIN은 4자리 숫자여야 합니다.')
+      return
+    }
+
+    setPinChangeLoading(true)
+
+    try {
+      const response = await fetch('/api/change-pin', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          currentPin,
+          newPin
+        }),
+      })
+
+      const data = await response.json()
+
+      if (data.success) {
+        toast.success('PIN이 성공적으로 변경되었습니다.')
+        setShowPinChangeModal(false)
+        setCurrentPin('')
+        setNewPin('')
+      } else {
+        toast.error(data.error || 'PIN 변경에 실패했습니다.')
+      }
+    } catch (error) {
+      console.error('PIN 변경 실패:', error)
+      toast.error('PIN 변경 중 오류가 발생했습니다.')
+    } finally {
+      setPinChangeLoading(false)
+    }
   }
 
   // 날짜 포맷팅
@@ -390,6 +495,12 @@ export default function StudentDashboard() {
               >
                 학습 히스토리
               </Link>
+              <button
+                onClick={() => setShowPinChangeModal(true)}
+                className="btn-ghost"
+              >
+                PIN 변경
+              </button>
               <div className="flex items-center space-x-3 px-4 py-2 bg-blue-50 rounded-xl border border-blue-100">
                 <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
                 <div className="text-sm">
@@ -504,8 +615,10 @@ export default function StudentDashboard() {
                     <div className="flex space-x-2">
                       {isTodayReservation(reservation) && !reservation.problem_selected && (
                         <button
-                          onClick={() => {
+                          onClick={async () => {
                             setCurrentReservationId(reservation.id)
+                            // 해당 예약 날짜에 맞는 문제들만 가져오기
+                            await fetchProblems(reservation.slot.date)
                             setShowProblemModal(true)
                           }}
                           className="flex-1 btn-primary text-xs py-2"
@@ -639,6 +752,102 @@ export default function StudentDashboard() {
           </div>
         </div>
 
+        {/* 피드백 세션 현황 */}
+        <div className="card animate-slide-up">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-3xl font-bold text-gray-900">피드백 세션</h2>
+            <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
+              <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+            </div>
+          </div>
+
+          {sessions.length === 0 ? (
+            <div className="text-center py-12">
+              <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+              </div>
+              <h3 className="text-lg font-medium text-gray-600 mb-2">생성된 피드백 세션이 없습니다</h3>
+              <p className="text-gray-500">문제를 선택하면 피드백 세션이 생성됩니다</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {sessions.map((session) => (
+                <div
+                  key={session.id}
+                  className={`p-5 rounded-2xl border-2 transition-all duration-200 hover:shadow-lg ${
+                    session.status === 'completed' ? 'bg-green-50 border-green-200' :
+                    session.status === 'feedback_pending' ? 'bg-blue-50 border-blue-200' :
+                    'bg-amber-50 border-amber-200'
+                  }`}
+                >
+                  <div className="flex justify-between items-start mb-3">
+                    <div className="flex-1">
+                      <h3 className="font-semibold text-gray-800 truncate">
+                        {session.problemTitle}
+                      </h3>
+                      <p className="text-sm text-gray-600 mt-1">
+                        {formatDate(session.date)} • {getSessionLabel(session.sessionPeriod)} {formatTimeSlot(session.timeSlot)}
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        {session.teacherName} 선생님 • {session.limitMinutes}분
+                      </p>
+                    </div>
+                    <span className={`px-2 py-1 rounded-lg text-xs font-medium ${
+                      session.status === 'completed' ? 'bg-green-100 text-green-800' :
+                      session.status === 'feedback_pending' ? 'bg-blue-100 text-blue-800' :
+                      'bg-amber-100 text-amber-800'
+                    }`}>
+                      {session.status === 'completed' ? '완료' :
+                       session.status === 'feedback_pending' ? '피드백 대기' : '진행중'}
+                    </span>
+                  </div>
+
+                  {/* 진행 상황 표시 */}
+                  <div className="mb-4 space-y-2">
+                    <div className="flex items-center text-xs">
+                      <div className={`w-3 h-3 rounded-full mr-2 ${session.hasScore ? 'bg-green-500' : 'bg-gray-300'}`}></div>
+                      <span className={session.hasScore ? 'text-green-700' : 'text-gray-500'}>
+                        채점 {session.hasScore ? '완료' : '대기중'}
+                      </span>
+                      {session.hasScore && session.finalScore !== null && (
+                        <span className="ml-2 font-medium text-green-700">({session.finalScore}점)</span>
+                      )}
+                    </div>
+                    <div className="flex items-center text-xs">
+                      <div className={`w-3 h-3 rounded-full mr-2 ${session.hasFeedback ? 'bg-green-500' : 'bg-gray-300'}`}></div>
+                      <span className={session.hasFeedback ? 'text-green-700' : 'text-gray-500'}>
+                        피드백 {session.hasFeedback ? '완료' : '대기중'}
+                      </span>
+                    </div>
+                    <div className="flex items-center text-xs">
+                      <div className={`w-3 h-3 rounded-full mr-2 ${session.hasReflection ? 'bg-green-500' : 'bg-gray-300'}`}></div>
+                      <span className={session.hasReflection ? 'text-green-700' : 'text-gray-500'}>
+                        복기 {session.hasReflection ? '완료' : '작성중'}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* 피드백 페이지 이동 버튼 */}
+                  <button
+                    onClick={() => {
+                      console.log('피드백 페이지로 이동:', `/session/${session.id}/feedback`)
+                      console.log('세션 ID:', session.id)
+                      router.push(`/session/${session.id}/feedback`)
+                    }}
+                    className="w-full py-3 px-4 bg-white border border-gray-300 rounded-xl text-gray-700 font-medium hover:bg-gray-50 hover:border-gray-400 transition-all duration-200"
+                  >
+                    피드백 페이지 보기 →
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
         {/* 문제 선택 모달 */}
         {showProblemModal && (
           <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 px-4">
@@ -677,16 +886,15 @@ export default function StudentDashboard() {
                         <div className="flex-1">
                           <p className="font-medium text-gray-800">{problem.title}</p>
                           <div className="flex items-center mt-2 space-x-2">
-                            <span className="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded">
-                              {problem.subject_area}
+                            <span className="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded">
+                              제한시간 {problem.limit_minutes}분
                             </span>
-                            <span className={`px-2 py-1 text-xs rounded ${
-                              problem.difficulty_level <= 2 ? 'bg-green-100 text-green-700' :
-                              problem.difficulty_level <= 3 ? 'bg-yellow-100 text-yellow-700' :
-                              'bg-red-100 text-red-700'
-                            }`}>
-                              난이도 {problem.difficulty_level}
+                            <span className="px-2 py-1 bg-green-100 text-green-700 text-xs rounded">
+                              사전열람 {problem.preview_lead_time}분 전
                             </span>
+                          </div>
+                          <div className="mt-1 text-xs text-gray-500">
+                            {problem.creator.name} 선생님 • {problem.creator.class_name}
                           </div>
                         </div>
                         <input
@@ -723,6 +931,93 @@ export default function StudentDashboard() {
                   }`}
                 >
                   선택하기 ✨
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* PIN 변경 모달 */}
+        {showPinChangeModal && (
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 px-4">
+            <div className="bg-white rounded-3xl p-8 w-full max-w-md shadow-2xl animate-slide-up">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-2xl font-bold text-gray-900">PIN 변경</h3>
+                <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center">
+                  <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m0 0a2 2 0 012 2m-2-2a2 2 0 00-2 2m2 2v2a2 2 0 01-2 2m-2-2a2 2 0 01-2-2m2-2a2 2 0 012-2m0 0V5a2 2 0 00-2-2m-4 6V4a1 1 0 011-1h4a1 1 0 011 1v2m-6 0a1 1 0 00-1 1v4a1 1 0 001 1m-1-5h2m5 0h2" />
+                  </svg>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    현재 PIN
+                  </label>
+                  <input
+                    type="password"
+                    maxLength={4}
+                    value={currentPin}
+                    onChange={(e) => setCurrentPin(e.target.value.replace(/[^0-9]/g, ''))}
+                    placeholder="현재 4자리 PIN 입력"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all text-center text-lg font-mono"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    새로운 PIN
+                  </label>
+                  <input
+                    type="password"
+                    maxLength={4}
+                    value={newPin}
+                    onChange={(e) => setNewPin(e.target.value.replace(/[^0-9]/g, ''))}
+                    placeholder="새로운 4자리 PIN 입력"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all text-center text-lg font-mono"
+                  />
+                </div>
+
+                <div className="text-sm text-gray-500 p-3 bg-yellow-50 rounded-lg border border-yellow-200">
+                  <p className="flex items-center">
+                    <svg className="w-4 h-4 text-yellow-600 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.876c1.242 0 2.135-1.13 1.73-2.261L13.956 4.016a1.969 1.969 0 00-3.913 0L3.332 16.739C2.927 17.87 3.82 19 5.062 19z" />
+                    </svg>
+                    PIN은 4자리 숫자여야 하며, 동일한 이름+PIN 조합이 없어야 합니다.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex space-x-4 mt-8">
+                <button
+                  onClick={() => {
+                    setShowPinChangeModal(false)
+                    setCurrentPin('')
+                    setNewPin('')
+                  }}
+                  className="btn-secondary flex-1 py-3"
+                  disabled={pinChangeLoading}
+                >
+                  취소
+                </button>
+                <button
+                  onClick={changePin}
+                  disabled={!currentPin || !newPin || currentPin.length !== 4 || newPin.length !== 4 || pinChangeLoading}
+                  className={`flex-1 py-3 px-6 rounded-2xl font-semibold transition-all duration-200 ${
+                    currentPin && newPin && currentPin.length === 4 && newPin.length === 4 && !pinChangeLoading
+                      ? 'bg-blue-600 text-white shadow-medium hover:bg-blue-700 hover:shadow-lg transform hover:-translate-y-0.5'
+                      : 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                  }`}
+                >
+                  {pinChangeLoading ? (
+                    <div className="flex items-center justify-center">
+                      <div className="w-5 h-5 border-2 border-gray-400 border-t-white rounded-full animate-spin mr-2"></div>
+                      변경 중...
+                    </div>
+                  ) : (
+                    'PIN 변경'
+                  )}
                 </button>
               </div>
             </div>

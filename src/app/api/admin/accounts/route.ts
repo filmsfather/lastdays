@@ -74,17 +74,17 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    // 중복 계정 확인
+    // 중복 계정 확인 (이름과 PIN 번호가 모두 같을 때)
     const { data: existingAccount } = await supabase
       .from('accounts')
       .select('id')
       .eq('name', name)
-      .eq('class_name', className)
+      .eq('pin', pin)
       .single()
 
     if (existingAccount) {
       return NextResponse.json(
-        { error: '이미 존재하는 계정입니다.' },
+        { error: '이미 동일한 이름과 PIN 번호를 사용하는 계정이 존재합니다.' },
         { status: 409 }
       )
     }
