@@ -29,12 +29,12 @@ export function getSessionExpiryDate(): Date {
 export async function createSession(user: User): Promise<string> {
   const sessionToken = generateSessionToken()
   const expiresAt = getSessionExpiryDate()
-  const cookieStore = await cookies()
+  const cookieStore = cookies()
   
   // 세션 토큰 쿠키 설정
   cookieStore.set('session', sessionToken, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
+    secure: true,
     sameSite: 'lax',
     expires: expiresAt,
     path: '/'
@@ -50,7 +50,7 @@ export async function createSession(user: User): Promise<string> {
 
   cookieStore.set('user', JSON.stringify(userInfo), {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
+    secure: true,
     sameSite: 'lax',
     expires: expiresAt,
     path: '/'
@@ -62,7 +62,7 @@ export async function createSession(user: User): Promise<string> {
 // 현재 세션에서 사용자 정보 조회
 export async function getCurrentUser(): Promise<User | null> {
   try {
-    const cookieStore = await cookies()
+    const cookieStore = cookies()
     const sessionCookie = cookieStore.get('session')
     const userCookie = cookieStore.get('user')
 
@@ -92,12 +92,12 @@ export async function getCurrentUser(): Promise<User | null> {
 
 // 세션 삭제
 export async function deleteSession(): Promise<void> {
-  const cookieStore = await cookies()
+  const cookieStore = cookies()
 
   // 세션 쿠키 삭제
   cookieStore.set('session', '', {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
+    secure: true,
     sameSite: 'lax',
     expires: new Date(0), // 즉시 만료
     path: '/'
@@ -106,7 +106,7 @@ export async function deleteSession(): Promise<void> {
   // 사용자 정보 쿠키 삭제
   cookieStore.set('user', '', {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
+    secure: true,
     sameSite: 'lax',
     expires: new Date(0), // 즉시 만료
     path: '/'
