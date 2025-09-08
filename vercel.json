@@ -6,11 +6,19 @@
   },
   "rewrites": [
     {
-      "source": "/(dashboard|teacher|session|login)/:path*",
+      "source": "/dashboard/:path*",
       "destination": "/"
     },
     {
-      "source": "/",
+      "source": "/teacher/:path*", 
+      "destination": "/"
+    },
+    {
+      "source": "/session/:path*",
+      "destination": "/"
+    },
+    {
+      "source": "/login",
       "destination": "/"
     }
   ]
