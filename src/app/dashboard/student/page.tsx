@@ -127,15 +127,22 @@ export default function StudentDashboard() {
     fetchCurrentUser()
   }, [])
 
-  // 주간 시작일 계산
-  const getWeekStart = (date: Date) => {
-    const d = new Date(date)
-    const day = d.getDay()
-    const diff = d.getDate() - day + (day === 0 ? -6 : 1) // 월요일을 시작으로
-    return new Date(d.setDate(diff))
+  // 한국 시간 기준으로 주간 시작일 계산
+  const getWeekStart = (date?: Date) => {
+    // 한국 시간 기준으로 현재 날짜 가져오기
+    const koreanToday = getKoreanDate(date)
+    const [year, month, day] = koreanToday.split('-').map(Number)
+    const koreanDate = new Date(year, month - 1, day) // 한국 시간대 기준 Date 객체
+    
+    const dayOfWeek = koreanDate.getDay()
+    const diff = koreanDate.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1) // 월요일을 시작으로
+    
+    const weekStart = new Date(koreanDate)
+    weekStart.setDate(diff)
+    return weekStart
   }
 
-  // 주간 날짜 배열 생성
+  // 주간 날짜 배열 생성 (한국 시간 기준)
   const getWeekDates = (weekStart: Date) => {
     const dates = []
     for (let i = 0; i < 7; i++) {
@@ -144,6 +151,14 @@ export default function StudentDashboard() {
       dates.push(date)
     }
     return dates
+  }
+
+  // Date 객체를 YYYY-MM-DD 문자열로 변환
+  const formatDateString = (date: Date) => {
+    const year = date.getFullYear()
+    const month = String(date.getMonth() + 1).padStart(2, '0')
+    const day = String(date.getDate()).padStart(2, '0')
+    return `${year}-${month}-${day}`
   }
 
   // 초기 데이터 로드
@@ -326,6 +341,8 @@ export default function StudentDashboard() {
     }
 
     try {
+      console.log('문제 선택 요청:', { currentReservationId, selectedProblem })
+      
       const response = await fetch(`/api/reservations/${currentReservationId}/select-problem`, {
         method: 'POST',
         headers: {
@@ -336,7 +353,33 @@ export default function StudentDashboard() {
         }),
       })
 
+      console.log('API 응답 상태:', response.status, response.statusText)
+      console.log('API 응답 헤더:', Object.fromEntries(response.headers.entries()))
+
+      if (!response.ok) {
+        console.error('API 에러 응답:', response.status, response.statusText)
+        
+        // 405 에러인 경우 특별 처리
+        if (response.status === 405) {
+          toast.error('API 경로 오류가 발생했습니다. 개발자에게 문의하세요.')
+          return
+        }
+        
+        // 응답이 JSON이 아닐 수도 있으므로 텍스트로 먼저 읽기
+        const errorText = await response.text()
+        console.error('에러 응답 내용:', errorText)
+        
+        try {
+          const errorData = JSON.parse(errorText)
+          toast.error(errorData.error || '문제 선택에 실패했습니다.')
+        } catch (parseError) {
+          toast.error(`서버 오류 (${response.status}): ${errorText || '알 수 없는 오류'}`)
+        }
+        return
+      }
+
       const data = await response.json()
+      console.log('API 응답 데이터:', data)
 
       if (data.success) {
         toast.success('문제가 선택되고 세션이 생성되었습니다.')
@@ -350,14 +393,15 @@ export default function StudentDashboard() {
         // 세션이 생성되면 피드백 페이지로 이동
         if (data.session?.id || data.sessionId) {
           const sessionId = data.session?.id || data.sessionId
+          console.log('피드백 페이지로 이동:', sessionId)
           router.push(`/session/${sessionId}/feedback`)
         }
       } else {
         toast.error(data.error || '문제 선택에 실패했습니다.')
       }
     } catch (error) {
-      console.error('문제 선택 실패:', error)
-      toast.error('문제 선택 중 오류가 발생했습니다.')
+      console.error('문제 선택 실패 (Catch):', error)
+      toast.error(`문제 선택 중 오류가 발생했습니다: ${error instanceof Error ? error.message : '알 수 없는 오류'}`)
     }
   }
 
@@ -465,9 +509,9 @@ export default function StudentDashboard() {
     setCurrentWeekStart(getWeekStart(new Date()))
   }
 
-  // 날짜별 슬롯 그룹핑
+  // 날짜별 슬롯 그룹핑 (한국 시간 기준)
   const getSlotsByDate = (date: Date) => {
-    const dateString = date.toISOString().split('T')[0]
+    const dateString = formatDateString(date)
     return slots.filter(slot => slot.date === dateString && slot.available)
   }
 
@@ -674,9 +718,9 @@ export default function StudentDashboard() {
           <div className="grid grid-cols-7 gap-2 max-h-[600px] overflow-y-auto custom-scrollbar">
             {getWeekDates(currentWeekStart).map((date, index) => {
               const daySlots = getSlotsByDate(date)
-              const dayReservations = reservations.filter(res => res.slot.date === date.toISOString().split('T')[0])
+              const dateString = formatDateString(date) // 로컬 Date 객체를 YYYY-MM-DD로 변환
+              const dayReservations = reservations.filter(res => res.slot.date === dateString)
               const todayKST = getKoreanDate()
-              const dateString = date.toISOString().split('T')[0]
               const isToday = dateString === todayKST
               const isPast = dateString < todayKST
               
