@@ -158,11 +158,14 @@ export async function GET(
 
     // 5단계: 스케줄링 계산
     const blockStart = (reservation.slot as any).session_period === 'AM' ? 10 : 16 // 10:00 AM or 4:00 PM
-    const scheduledStartAt = new Date((reservation.slot as any).date)
+    // 한국 시간대 기준으로 예약 시작 시간 설정
+    const koreanDate = new Date(new Date((reservation.slot as any).date + 'T00:00:00').toLocaleString('en-US', { timeZone: 'Asia/Seoul' }))
+    const scheduledStartAt = new Date(koreanDate)
     scheduledStartAt.setHours(blockStart, 0, 0, 0)
     scheduledStartAt.setMinutes(scheduledStartAt.getMinutes() + (queuePosition - 1) * 10)
     
-    const now = new Date()
+    // 한국 시간대 기준으로 현재 시간 가져오기
+    const now = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Seoul' }))
     const previewLeadMinutes = problem.preview_lead_time || 10
     const previewStartTime = new Date(scheduledStartAt.getTime() - previewLeadMinutes * 60000)
     const waitingRoomTime = new Date(scheduledStartAt.getTime() - 5 * 60000) // 5분 전
