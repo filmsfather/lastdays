@@ -146,17 +146,7 @@ export default function SessionFeedbackPage({
     fetchData()
   }, [params, router])
 
-  // 임시 테스트용 - 항상 이 내용을 표시
-  return (
-    <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-      <div className="text-center">
-        <h1 className="text-2xl font-bold">피드백 페이지 테스트</h1>
-        <p>세션 ID: {JSON.stringify(params)}</p>
-        <p>로딩 상태: {loading ? '로딩중' : '완료'}</p>
-        <p>현재 사용자: {currentUser ? JSON.stringify(currentUser) : '없음'}</p>
-      </div>
-    </div>
-  )
+  // 테스트 완료 - 원래 로직 복원
 
   if (loading) {
     return (
@@ -197,8 +187,6 @@ export default function SessionFeedbackPage({
     )
   }
 
-  // 임시로 주석 처리
-  /*
   if (!sessionData || !currentUser) {
     return null
   }
@@ -209,5 +197,4 @@ export default function SessionFeedbackPage({
       currentUser={currentUser}
     />
   )
-  */
 }
