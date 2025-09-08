@@ -1,0 +1,13 @@
+{
+  "/api/auth/login/route": "app/api/auth/login/route.js",
+  "/api/auth/me/route": "app/api/auth/me/route.js",
+  "/api/teacher/problems/route": "app/api/teacher/problems/route.js",
+  "/api/teacher/dashboard/stats/route": "app/api/teacher/dashboard/stats/route.js",
+  "/login/page": "app/login/page.js",
+  "/dashboard/admin/page": "app/dashboard/admin/page.js",
+  "/dashboard/admin/timeslot-management/page": "app/dashboard/admin/timeslot-management/page.js",
+  "/dashboard/teacher/page": "app/dashboard/teacher/page.js",
+  "/dashboard/teacher/today/page": "app/dashboard/teacher/today/page.js",
+  "/session/[id]/feedback/page": "app/session/[id]/feedback/page.js",
+  "/dashboard/student/history/page": "app/dashboard/student/history/page.js"
+}

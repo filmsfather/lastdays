@@ -1,0 +1,391 @@
+# 최종 PRD: 직전대비기간 모의 실기 예약 시스템 (MVP, 찐막)
+
+## 0) 목표 & 원칙
+
+* **목표:** 학생이 이용권(티켓)으로 슬롯을 예약하고, **당일 문제 선택 → 사전열람(시작 N분 전 자동 공개) → 실기 진행 → 채점(4항목) → 피드백/복기**를 한 흐름으로 운영.
+* **스택:** Next.js(App Router, 서버 모드) · Tailwind · Supabase(PostgreSQL) · EC2(Nginx 프록시).
+* **보안(최소화):** DB는 서버만 접근(Supabase service role). 인증은 **이름/반/역할 + 4자리 PIN(평문)** + 세션 쿠키(HttpOnly, Secure).
+* **타임존:** Asia/Seoul.
+* **간결성:** 규칙·데이터·화면 최소화(필터 없음, SSR 우선).
+
+---
+
+## 1) 역할 & 권한
+
+* **Admin**
+
+  * 계정 CRUD(이름/반/역할/PIN 평문)
+  * 이용권 발급(주간 10장 일괄, 개별 추가)
+  * 주간 슬롯(오전/오후) 생성/관리
+* **Teacher**
+
+  * **문제 전날 초안 → 당일 공개**
+  * 당일 스케줄(자동 계산) 열람, 피드백 페이지에서 **채점/서면피드백/체크리스트 생성**
+* **Student**
+
+  * **예약(즉시 차감)**, **전날까지 수정**
+  * **당일 문제 선택 → 피드백 페이지 자동 생성**
+  * 피드백 페이지에서 **복기 입력·체크 완료 토글**
+
+> 권한별 입력: 교사만(채점/서면피드백/체크리스트 CRUD), 학생만(복기/체크 완료). 서로 영역은 읽기 전용.
+
+---
+
+## 2) 규칙
+
+### 2.1 예약/수정/차감
+
+* 블록: **오전(10:00\~16:00)** / **오후(16:00\~22:00)**
+* 하루 최대 **3회**, **오전·오후 교차 불가**, 같은 날 **같은 선생님 ≤ 2회**
+* **예약 시 이용권 1장 즉시 차감**(트랜잭션 내)
+* **전날(D-1) 23:59까지** 예약 수정 가능(추가 차감 없음), **당일 수정 불가**
+* 문제 선택은 **예약 당일**만 가능
+
+### 2.2 문제 공개(사전열람) — *자동·단일 규칙*
+
+* 문제별 **사전열람 리드타임**: `preview_lead_minutes` (기본 10분, 문제 생성 시 교사 설정)
+* **인터뷰 간격 고정:** 10분
+* **면접 예정 시각(자동 계산)**
+  같은 **날짜 + 블록 + 교사** 그룹에서 **예약 생성 시각(created\_at)** 오름차순으로 순번을 부여:
+
+  ```
+  scheduledStartAt = blockStart(date, block) + (queuePosition - 1) × 10분
+  blockStart(AM)=10:00, blockStart(PM)=16:00 (KST)
+  ```
+* **가시성 단 하나의 규칙:**
+
+  ```
+  now ≥ scheduledStartAt − preview_lead_minutes → 문제 표시
+  그 전 → 가림
+  (한 번 표시되면 면접 중/후에도 계속 표시)
+  ```
+* 피드백 페이지에는 시간/순서 **표시 안 함**(서버가 가시성만 판정)
+
+---
+
+## 3) 사용자 플로우
+
+### Admin
+
+1. 모든 학생에 **주간 10장 발급**
+2. 필요 학생 **개별 추가 발급**
+3. 해당 주 **오전/오후 슬롯 생성**(요일/용량)
+
+### Teacher
+
+1. **전날**: 문제 초안 작성(`available_date=내일`, `is_active=false`, `preview_lead_minutes` 입력)
+2. **당일 오전**: 공개(Publish → `is_active=true`)
+3. **/dashboard/teacher/today**(자동 스케줄)에서 학생 클릭 → **피드백 페이지**로 이동
+4. 채점(4항목: 실기/전공지식/개별역량/태도 — 상·상중·중·중하·하·미참여), 서면 피드백, 체크리스트 생성
+
+### Student
+
+1. 잔여 확인 → **예약**(즉시 차감)
+2. **전날까지** 예약 수정 가능
+3. **당일** 공개 문제 **선택** → **피드백 페이지 자동 생성**
+4. **사전열람 윈도우**에 문제 확인(표시되면 이후 계속 열람 가능)
+5. 면접 후 **복기 작성**, 체크리스트 **완료 체크**
+
+---
+
+## 4) 데이터 모델(핵심)
+
+### accounts
+
+```
+id uuid pk, role 'student'|'teacher'|'admin',
+name text, class_name text, pin char(4), is_active boolean, created_at
+```
+
+### tickets
+
+```
+id uuid pk, student_id uuid fk, balance int>=0, source text, created_at
+```
+
+### reservation\_slots
+
+```
+id uuid pk, date date, block 'AM'|'PM', teacher_id uuid?, capacity int, is_open boolean,
+unique(date, block, teacher_id)
+```
+
+### reservations
+
+```
+id uuid pk, student_id uuid, slot_id uuid, teacher_id uuid,
+status 'BOOKED'|'OPEN'|'DONE'|'CANCELLED' default 'BOOKED',
+ticket_charged boolean default false,  -- 예약 시 true
+created_at timestamptz default now(),
+unique(student_id, slot_id, teacher_id)
+```
+
+### problems
+
+```
+id uuid pk, school text, title text, type text?,
+limit_minutes int(1..300), available_date date,
+preview_lead_minutes int not null default 10,  -- 사전열람 리드타임
+created_by uuid, is_active boolean default false, published_at, created_at
+-- index: (available_date, is_active), (school, available_date)
+```
+
+### sessions / scores / feedbacks / checklist / reflection
+
+```
+sessions:
+  id uuid pk, reservation_id uuid unique fk, problem_id uuid fk,
+  problem_snapshot jsonb,       -- 선택 시점 스냅샷
+  interviewers text[],          -- 면접관 이름들(표시용)
+  status 'SCHEDULED'|'OPEN'|'CLOSED' default 'SCHEDULED',
+  participation boolean default true,
+  final_level '상'|'상중'|'중'|'중하'|'하'|'미참여'
+
+scores:
+  id uuid pk, session_id uuid unique fk,
+  level_skill/knowledge/capability/attitude ('상'|'상중'|'중'|'중하'|'하'|'미참여')
+
+feedbacks:
+  id uuid pk, session_id uuid unique fk,
+  text text, teacher_id uuid, created_at
+
+checklist_items:
+  id uuid pk, session_id uuid fk, title text, desc text,
+  created_by uuid fk, is_done boolean default false,
+  done_by uuid fk null, done_at timestamptz null,
+  created_at, updated_at
+
+student_reflections:
+  id uuid pk, session_id uuid unique fk, student_id uuid fk,
+  text text, updated_at
+```
+
+> 자동 스케줄을 쓰므로 `scheduled_start_at` 저장 없음(서버 계산으로 판정).
+
+---
+
+## 5) API 설계(요약)
+
+### 인증
+
+* `POST /api/auth/login` → `{ name, className, pin }` (세션 발급)
+* `POST /api/auth/logout`
+
+### Admin
+
+* `POST /api/admin/accounts` / `PATCH /api/admin/accounts/:id`
+* `POST /api/admin/tickets/weekly-issue`
+* `POST /api/admin/tickets/grant`
+* `POST /api/admin/slots`
+* `GET /api/admin/slots?week=YYYY-WW`
+
+### Teacher — 문제
+
+* `POST /api/teacher/problems` (초안: `{ school,title,type?,limitMinutes,availableDate,previewLeadMinutes? }`)
+* `PATCH /api/teacher/problems/:id` (사용 전 수정)
+* `POST /api/teacher/problems/:id/publish`
+* `POST /api/teacher/problems/:id/archive`
+* `POST /api/teacher/problems/:id/duplicate`
+* `GET /api/teacher/problems?date=YYYY-MM-DD&school=`
+
+### Student — 예약/선택/기록
+
+* `GET /api/me/tickets`
+* `GET /api/slots?from=...&to=...`
+* `POST /api/reservations` → `{ slotId, teacherId }` (**즉시 차감 & 생성**)
+* `PATCH /api/reservations/:id` → `{ slotId?, teacherId? }` (**전날까지**)
+* `POST /api/reservations/:id/select-problem` → `{ problemId }` (당일만; 세션/스냅샷 생성)
+* `GET /api/me/history` (단, MVP에서는 **SSR 페이지에서 직접 조회** 가능)
+
+### 피드백 페이지(공통/권한별)
+
+* `GET /api/sessions/:id/feedback-page`
+  → `{ problemSnapshot, interviewers, scores, teacherFeedback, checklistItems, studentReflection, canShowProblem }`
+* 교사:
+
+  * `POST /api/teacher/sessions/:id/grade`
+  * `POST /api/teacher/sessions/:id/feedback`
+  * `POST|PATCH|DELETE /api/teacher/sessions/:id/checklist[...]`
+  * (선택) `PATCH /api/teacher/sessions/:id/interviewers`
+* 학생:
+
+  * `PATCH /api/sessions/:id/reflection`
+  * `POST /api/sessions/:id/checklist/:itemId/toggle`
+
+---
+
+## 6) 서버 로직(핵심)
+
+### 6.1 예약 생성(즉시 차감)
+
+1. 잔여 ≥ 1, 일일 ≤3, 블록 동일, 동일 교사 ≤2 검증
+2. **tickets.balance − 1**
+3. `reservations` 생성(`ticket_charged=true`)
+4. 커밋(원자성)
+
+### 6.2 예약 수정(전날까지)
+
+* D-1 23:59까지 `slot_id/teacher_id` 변경(규칙 재검증), 당일 403
+* 추가 차감 없음
+* 순번은 `created_at` 기준(단순)
+
+### 6.3 당일 문제 선택 → 피드백 페이지 생성
+
+* `sessions` upsert + `problem_snapshot` 저장
+* `student_reflections` 초기화
+* 체크리스트는 빈 상태(템플릿은 P1)
+* URL: `/session/:id/feedback`
+
+### 6.4 가시성 판정(서버)
+
+```ts
+const INTERVIEW_INTERVAL_MIN = 10;
+const blockStart = (date, block) => block==='AM'? setKST(date,10,0) : setKST(date,16,0);
+
+function queuePosition(reservationId) {
+  // 같은 (date, block, teacher_id) 파티션에서 created_at 오름차순 순번
+  // SQL ROW_NUMBER() 또는 애플리케이션 정렬
+}
+
+function scheduledStartAt(date, block, position) {
+  return addMinutes(blockStart(date, block), (position - 1) * INTERVIEW_INTERVAL_MIN);
+}
+
+function canShowProblemForSession(s, problem, now) {
+  const pos = queuePosition(s.reservationId); // 파티션: date, block, teacher_id
+  const sched = scheduledStartAt(s.date, s.block, pos);
+  return now >= addMinutes(sched, -(problem.preview_lead_minutes ?? 10));
+}
+```
+
+---
+
+## 7) 화면(라우팅 & SSR 중심)
+
+### 학생
+
+* `/dashboard/student` — 잔여 이용권, 이번 주 슬롯, 예약/수정, 당일 문제 선택 진입
+* **`/dashboard/student/history`** — **필터 없이** 최신 50건 리스트(SSR) → 각 항목은 `/session/:id/feedback`
+
+### 교사
+
+* **`/dashboard/teacher/today`** — 당일 스케줄(자동 시간/순번/문제선택 여부/상태/피드백 이동)
+* **`/dashboard/teacher/students`** — **필터 없이** 반별 섹션으로 학생 목록
+
+  * 테이블: 학생명 | 잔여 이용권 | 최근 3건 배지 | **\[전체 피드백 보기]**
+  * **`/dashboard/teacher/students/:studentId`** — 해당 학생 최신 50건 리스트(SSR) → 항목별 `/session/:id/feedback`
+* `/dashboard/teacher` — 문제 탭(초안/공개/아카이브/복제, `preview_lead_minutes` 입력)
+
+### 피드백 페이지(공통 URL: `/session/:id/feedback`)
+
+* 문제 스냅샷 영역: `canShowProblem`에 따라 표시/가림(+ 카운트다운)
+* **교사 전용:** 채점(4항목), 서면피드백, 체크리스트 CRUD
+* **학생 전용:** 복기 입력, 체크 완료 토글
+
+> **필터/검색/페이지네이션 없음** — MVP의 단순성 유지.
+
+---
+
+## 8) 수락 기준
+
+**예약/수정/차감**
+
+* [ ] 예약 생성 시 **티켓 1장 즉시 차감**된다(트랜잭션 내).
+* [ ] 잔여 0이면 예약 실패(409).
+* [ ] 전날까지 예약 수정 가능(추가 차감 없음), 당일 수정 불가(403).
+
+**문제 공개(자동)**
+
+* [ ] 같은 날짜/블록/교사 묶음에서 예약은 **created\_at 오름차순**으로 순번이 매겨진다.
+* [ ] `scheduledStartAt = blockStart + (순번−1)×10분` 으로 자동 계산된다.
+* [ ] `now ≥ scheduledStartAt − preview_lead_minutes` 시점부터 문제는 **자동 표시**되고 이후 계속 보인다.
+
+**피드백 페이지 & 권한**
+
+* [ ] 당일 문제 선택 시 피드백 페이지가 생성되고, 거기서 채점/피드백/체크리스트/복기를 관리한다.
+* [ ] 교사는 채점/서면피드백/체크리스트 생성·수정, 학생은 복기·체크 완료만 입력 가능하다.
+
+**히스토리 & 교사 대시보드**
+
+* [ ] 학생 `/dashboard/student/history`에서 **필터 없이 최신 50건**을 보고 피드백 페이지로 이동할 수 있다.
+* [ ] 교사 `/dashboard/teacher/today`에서 **자동 시간/순번** 스케줄을 보고 피드백 페이지로 이동할 수 있다.
+* [ ] 교사 `/dashboard/teacher/students`에서 **반별 섹션으로 학생/잔여/최근3건**을 보고, **학생별 전체 피드백** 페이지로 이동할 수 있다.
+
+---
+
+## 9) 비기능 & 운영
+
+* EC2 단일 인스턴스(+PM2), Nginx 리버스 프록시
+* 로그/감사: 로그인 시도/성공, 계정·이용권·슬롯, 예약 생성·수정, 문제 공개, 채점·피드백·체크 토글
+* 백업: Supabase 기본 백업
+* 보안 주의: PIN 평문 저장(요청 반영) 
+
+---
+
+## 10) 환경 변수
+
+```
+NEXT_PUBLIC_SUPABASE_URL=
+NEXT_PUBLIC_SUPABASE_ANON_KEY=
+SUPABASE_SERVICE_ROLE_KEY=
+SESSION_SECRET=
+NODE_ENV=production
+TZ=Asia/Seoul
+```
+
+---
+
+## 11) 인덱스(권장)
+
+* `accounts(role, class_name, name)`
+* `tickets(student_id)`
+* `reservation_slots(date, block, teacher_id)`
+* `reservations(student_id, created_at desc)`
+* `sessions(reservation_id)` (unique)
+
+---
+
+## 12) 구현 메모(SSR 쿼리 스냅샷)
+
+**순번 계산(개념 SQL)**
+
+```sql
+SELECT r.id AS reservation_id,
+       ROW_NUMBER() OVER (
+         PARTITION BY rs.date, rs.block, r.teacher_id
+         ORDER BY r.created_at
+       ) AS queue_position
+FROM reservations r
+JOIN reservation_slots rs ON rs.id = r.slot_id
+WHERE rs.date = $today AND r.teacher_id = $teacherId;
+```
+
+**학생 히스토리(최신 50, 필터 없음)**
+
+```sql
+SELECT s.id AS session_id, rs.date, rs.block,
+       t.name AS teacher_name,
+       COALESCE(s.problem_snapshot->>'title', p.title) AS problem_title,
+       s.final_level
+FROM sessions s
+JOIN reservations r  ON r.id = s.reservation_id
+JOIN reservation_slots rs ON rs.id = r.slot_id
+JOIN accounts t ON t.id = r.teacher_id
+LEFT JOIN problems p ON p.id = s.problem_id
+WHERE r.student_id = $me
+ORDER BY rs.date DESC, s.id DESC
+LIMIT 50;
+```
+
+**교사 학생현황(반별)**
+
+```sql
+SELECT a.id AS student_id, a.name, a.class_name, COALESCE(t.balance,0) AS ticket_balance
+FROM accounts a
+LEFT JOIN tickets t ON t.student_id = a.id
+WHERE a.role='student'
+ORDER BY a.class_name, a.name;
+-- 학생별 최근 3건은 서버에서 학생 루프 돌며 동일 패턴으로 LIMIT 3 조회 (MVP 단순)
+```
+
+---

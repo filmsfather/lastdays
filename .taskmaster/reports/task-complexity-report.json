@@ -1,0 +1,93 @@
+{
+	"meta": {
+		"generatedAt": "2025-09-07T06:34:15.196Z",
+		"tasksAnalyzed": 10,
+		"totalTasks": 10,
+		"analysisCount": 10,
+		"thresholdScore": 5,
+		"projectName": "Taskmaster",
+		"usedResearch": false
+	},
+	"complexityAnalysis": [
+		{
+			"taskId": 1,
+			"taskTitle": "프로젝트 초기 설정 및 데이터베이스 스키마 구축",
+			"complexityScore": 8,
+			"recommendedSubtasks": 6,
+			"expansionPrompt": "Next.js 14+ App Router 프로젝트 생성부터 Supabase PostgreSQL 데이터베이스의 모든 테이블과 인덱스 설정까지, 프로젝트의 기반이 되는 모든 초기 설정 작업을 단계별로 세분화하여 진행하세요. 각 테이블 생성, 인덱스 설정, 환경변수 구성, 클라이언트 초기화를 별도의 작업으로 분리하여 체계적으로 관리할 수 있도록 하세요.",
+			"reasoning": "프로젝트의 기반이 되는 복잡한 초기 설정으로, Next.js 설정, Tailwind 설정, 10개의 테이블 생성, 다수의 인덱스 설정 등 다양한 기술 스택과 설정이 포함되어 있음"
+		},
+		{
+			"taskId": 2,
+			"taskTitle": "인증 시스템 구현",
+			"complexurityScore": 7,
+			"recommendedSubtasks": 5,
+			"expansionPrompt": "이름/반/역할 기반의 고유한 인증 시스템을 구현하기 위해 API 엔드포인트 개발, 세션 관리, 미들웨어 구현, 권한 체크 시스템, 로깅 시스템을 별도의 작업으로 나누어 진행하세요. 보안 요구사항과 HttpOnly 쿠키 설정에 특별히 주의하세요.",
+			"reasoning": "보안이 중요한 인증 시스템으로, API 개발, 세션 관리, 미들웨어, 권한 시스템 등 여러 보안 관련 컴포넌트가 통합되어야 함"
+		},
+		{
+			"taskId": 3,
+			"taskTitle": "관리자 계정 및 이용권 관리 시스템",
+			"complexityScore": 6,
+			"recommendedSubtasks": 4,
+			"expansionPrompt": "관리자 전용 기능인 계정 관리와 이용권 시스템을 구현하기 위해 계정 CRUD API, 주간 이용권 일괄 발급 시스템, 개별 이용권 추가 발급, 관리자 대시보드 UI를 각각 독립적인 작업으로 나누어 개발하세요. 트랜잭션 처리에 특별히 주의하세요.",
+			"reasoning": "관리자 권한 시스템과 이용권 관리라는 두 개의 주요 기능이 결합되어 있으며, 트랜잭션 처리와 대시보드 UI가 필요함"
+		},
+		{
+			"taskId": 4,
+			"taskTitle": "슬롯 관리 및 예약 시스템 핵심 로직",
+			"complexityScore": 9,
+			"recommendedSubtasks": 7,
+			"expansionPrompt": "예약 시스템의 핵심 비즈니스 로직을 구현하기 위해 슬롯 생성/관리 API, 예약 생성 시 즉시 티켓 차감 로직, 예약 수정 API, 복잡한 예약 규칙 검증 시스템, 순번 계산 로직, 트랜잭션 처리, 에러 핸들링을 각각 별도의 작업으로 세분화하세요.",
+			"reasoning": "시스템의 핵심 비즈니스 로직으로 복잡한 예약 규칙(하루 최대 3회, 교차 불가, 동일 교사 2회 제한), 트랜잭션 처리, 순번 계산 등 다수의 복잡한 로직이 포함됨"
+		},
+		{
+			"taskId": 5,
+			"taskTitle": "문제 관리 및 공개 시스템",
+			"complexityScore": 8,
+			"recommendedSubtasks": 6,
+			"expansionPrompt": "교사의 문제 관리와 복잡한 자동 공개 로직을 구현하기 위해 문제 CRUD API, 공개/아카이브 API, 사전열람 리드타임 계산 로직, 자동 공개 스케줄링 시스템, 문제 복제 기능, 공개 권한 관리를 각각 독립적인 작업으로 나누어 개발하세요.",
+			"reasoning": "복잡한 시간 계산 로직(scheduledStartAt, preview_lead_minutes)과 자동 공개 시스템, 문제 상태 관리 등이 포함된 고도의 비즈니스 로직"
+		},
+		{
+			"taskId": 6,
+			"taskTitle": "학생 예약 및 문제 선택 시스템",
+			"complexityScore": 7,
+			"recommendedSubtasks": 5,
+			"expansionPrompt": "학생 중심의 예약 관리와 문제 선택 기능을 구현하기 위해 이용권 조회 API, 슬롯 조회 및 예약 생성/수정 API, 문제 선택 시 세션 생성 로직, 문제 스냅샷 저장 시스템, 학생 대시보드 예약 관리 UI를 각각 별도의 작업으로 나누어 진행하세요.",
+			"reasoning": "여러 API와 복잡한 데이터 흐름(problem_snapshot, sessions 생성, student_reflections 초기화)이 포함되어 있으며, 학생 UI와의 통합이 필요함"
+		},
+		{
+			"taskId": 7,
+			"taskTitle": "피드백 페이지 및 채점 시스템",
+			"complexityScore": 8,
+			"recommendedSubtasks": 6,
+			"expansionPrompt": "교사와 학생이 모두 사용하는 복합적인 피드백 시스템을 구현하기 위해 피드백 페이지 데이터 조회 API, 4항목 채점 시스템, 서면 피드백 관리, 체크리스트 CRUD, 학생 복기 입력 기능, 권한별 기능 분리를 각각 독립적인 작업으로 나누어 개발하세요.",
+			"reasoning": "교사와 학생 두 역할이 서로 다른 기능을 사용하는 복잡한 시스템으로, 4항목 채점, 체크리스트 관리, 복기 입력 등 다양한 기능이 통합되어 있음"
+		},
+		{
+			"taskId": 8,
+			"taskTitle": "학생 대시보드 및 히스토리 페이지",
+			"complexityScore": 5,
+			"recommendedSubtasks": 3,
+			"expansionPrompt": "학생용 대시보드와 히스토리 조회 기능을 구현하기 위해 메인 대시보드 페이지(잔여 이용권, 슬롯, 예약 관리), 히스토리 페이지 SSR 구현, 피드백 페이지 연결을 각각 독립적인 작업으로 나누어 개발하세요.",
+			"reasoning": "상대적으로 단순한 UI 중심의 작업이지만, SSR 구현과 다양한 데이터 표시가 포함되어 있음"
+		},
+		{
+			"taskId": 9,
+			"taskTitle": "교사 대시보드 및 학생 관리 페이지",
+			"complexityScore": 6,
+			"recommendedSubtasks": 4,
+			"expansionPrompt": "교사용 대시보드와 학생 관리 기능을 구현하기 위해 당일 스케줄 자동 계산 로직, 반별 학생 목록 페이지, 학생별 피드백 히스토리 SSR 페이지, 문제 관리 탭을 각각 독립적인 작업으로 나누어 개발하세요.",
+			"reasoning": "자동 스케줄 계산과 반별 섹션 관리, 여러 페이지 구현이 필요하지만 상대적으로 UI 중심의 작업"
+		},
+		{
+			"taskId": 10,
+			"taskTitle": "배포 환경 구성 및 로깅 시스템",
+			"complexityScore": 7,
+			"recommendedSubtasks": 5,
+			"expansionPrompt": "프로덕션 배포와 운영을 위한 인프라를 구축하기 위해 EC2 배포 설정, Nginx 리버스 프록시 구성, PM2 프로세스 관리, 포괄적인 감사 로깅 시스템, 환경 설정 및 백업 구성을 각각 독립적인 작업으로 나누어 진행하세요.",
+			"reasoning": "인프라 구성과 포괄적인 로깅 시스템이 포함된 DevOps 작업으로, 여러 기술(EC2, Nginx, PM2)과 광범위한 로깅 요구사항이 포함됨"
+		}
+	]
+}
