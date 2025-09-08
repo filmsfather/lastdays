@@ -18,10 +18,12 @@ export async function GET(req: NextRequest) {
     }
 
     console.log('User found, returning success')
-    return NextResponse.json({
+    const response = NextResponse.json({
       success: true,
       user
     })
+    console.log('Response created successfully')
+    return response
   } catch (error) {
     console.error('Get current user error:', error)
     return NextResponse.json(
