@@ -29,7 +29,7 @@ export function getSessionExpiryDate(): Date {
 export async function createSession(user: User): Promise<string> {
   const sessionToken = generateSessionToken()
   const expiresAt = getSessionExpiryDate()
-  const cookieStore = cookies()
+  const cookieStore = await cookies()
   
   // 세션 토큰 쿠키 설정
   cookieStore.set('session', sessionToken, {
@@ -62,7 +62,7 @@ export async function createSession(user: User): Promise<string> {
 // 현재 세션에서 사용자 정보 조회
 export async function getCurrentUser(): Promise<User | null> {
   try {
-    const cookieStore = cookies()
+    const cookieStore = await cookies()
     const sessionCookie = cookieStore.get('session')
     const userCookie = cookieStore.get('user')
 
@@ -92,7 +92,7 @@ export async function getCurrentUser(): Promise<User | null> {
 
 // 세션 삭제
 export async function deleteSession(): Promise<void> {
-  const cookieStore = cookies()
+  const cookieStore = await cookies()
 
   // 세션 쿠키 삭제
   cookieStore.set('session', '', {
