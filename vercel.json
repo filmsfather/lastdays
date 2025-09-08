@@ -6,7 +6,11 @@
   },
   "rewrites": [
     {
-      "source": "/(?!api)(.*)",
+      "source": "/(dashboard|teacher|session|login)/:path*",
+      "destination": "/"
+    },
+    {
+      "source": "/",
       "destination": "/"
     }
   ]
