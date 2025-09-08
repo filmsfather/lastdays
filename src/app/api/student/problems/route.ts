@@ -13,20 +13,30 @@ export async function GET(req: NextRequest) {
       )
     }
 
-    // 공개된 문제만 조회 (published 상태)
-    const { data: problems, error } = await supabase
+    const { searchParams } = new URL(req.url)
+    const availableDate = searchParams.get('date') // YYYY-MM-DD 형식
+
+    let query = supabase
       .from('problems')
       .select(`
         id,
         title,
-        difficulty_level,
-        subject_area,
+        limit_minutes,
+        available_date,
+        preview_lead_time,
         created_at,
         created_by,
         creator:created_by(name, class_name)
       `)
       .eq('status', 'published')
       .order('created_at', { ascending: false })
+
+    // 특정 날짜의 문제만 조회 (당일 예약용)
+    if (availableDate) {
+      query = query.eq('available_date', availableDate)
+    }
+
+    const { data: problems, error } = await query
 
     if (error) {
       console.error('Database error:', error)

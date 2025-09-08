@@ -63,9 +63,25 @@ export async function POST(
       .single()
 
     if (reservationError || !reservation) {
+      console.error('Reservation error:', reservationError)
       return NextResponse.json(
         { error: '예약을 찾을 수 없습니다.' },
         { status: 404 }
+      )
+    }
+
+    // 당일 예약인지 확인
+    const reservationDate = new Date(reservation.slot.date)
+    const currentDate = new Date()
+    const currentDateString = currentDate.toISOString().split('T')[0]
+    const reservationDateString = reservationDate.toISOString().split('T')[0]
+
+    console.log('Date check:', { currentDateString, reservationDateString })
+
+    if (currentDateString !== reservationDateString) {
+      return NextResponse.json(
+        { error: '당일 예약에서만 문제를 선택할 수 있습니다.' },
+        { status: 400 }
       )
     }
 
@@ -85,19 +101,6 @@ export async function POST(
       )
     }
 
-    // 당일 예약인지 확인
-    const reservationDate = new Date(reservation.slot.date)
-    const currentDate = new Date()
-    const currentDateString = currentDate.toISOString().split('T')[0]
-    const reservationDateString = reservationDate.toISOString().split('T')[0]
-
-    if (currentDateString !== reservationDateString) {
-      return NextResponse.json(
-        { error: '당일 예약에서만 문제를 선택할 수 있습니다.' },
-        { status: 400 }
-      )
-    }
-
     // 문제 정보 조회
     const { data: problem, error: problemError } = await supabase
       .from('problems')
@@ -105,6 +108,9 @@ export async function POST(
       .eq('id', problemId)
       .eq('status', 'published')
       .single()
+
+    console.log('Problem found:', problem ? { id: problem.id, title: problem.title, available_date: problem.available_date } : 'No problem found')
+    console.log('Problem error:', problemError)
 
     if (problemError || !problem) {
       return NextResponse.json(
@@ -127,33 +133,68 @@ export async function POST(
       )
     }
 
-    // 트랜잭션: 세션 생성, 문제 스냅샷 저장, 예약 상태 업데이트, 학생 복기 초기 레코드 생성
-    const { data: sessionResult, error: createError } = await supabase
-      .rpc('create_session_with_problem', {
-        p_reservation_id: reservationId,
-        p_problem_id: problemId,
-        p_problem_snapshot: {
-          id: problem.id,
-          title: problem.title,
-          content: problem.content,
-          difficulty_level: problem.difficulty_level,
-          subject_area: problem.subject_area,
-          created_by: problem.created_by,
-          created_at: problem.created_at,
-          updated_at: problem.updated_at
-        }
-      })
+    // 세션 생성 (problem_snapshot 필드는 DB에 없으므로 제거)
+    const sessionInsertData = {
+      reservation_id: reservationId,
+      problem_id: problemId,
+      status: 'active'
+    }
 
-    if (createError) {
-      console.error('Session creation failed:', createError)
+    console.log('Inserting session with data:', JSON.stringify(sessionInsertData, null, 2))
+
+    const { data: newSession, error: sessionError } = await supabase
+      .from('sessions')
+      .insert(sessionInsertData)
+      .select('id')
+      .single()
+
+    if (sessionError) {
+      console.error('Session creation failed:', sessionError)
+      console.error('Session data attempted:', {
+        reservation_id: reservationId,
+        problem_id: problemId,
+        status: 'active'
+      })
       return NextResponse.json(
-        { error: '세션 생성 중 오류가 발생했습니다.' },
+        { error: `세션 생성 중 오류가 발생했습니다: ${sessionError.message}` },
         { status: 500 }
       )
     }
 
+    console.log('Session created successfully with ID:', newSession.id)
+
+    // 예약 상태를 problem_selected = true로 업데이트
+    const { error: reservationUpdateError } = await supabase
+      .from('reservations')
+      .update({ problem_selected: true })
+      .eq('id', reservationId)
+
+    if (reservationUpdateError) {
+      console.error('Reservation update failed:', reservationUpdateError)
+      // 세션은 생성되었으므로 계속 진행
+    }
+
+    // 초기 학생 복기 레코드 생성 (선택적)
+    try {
+      const { error: reflectionError } = await supabase
+        .from('student_reflections')
+        .insert({
+          session_id: newSession.id,
+          student_id: currentUser.id,
+          text: ''
+        })
+
+      if (reflectionError) {
+        console.error('Initial reflection creation failed:', reflectionError)
+        // 복기는 나중에 추가할 수 있으므로 계속 진행
+      }
+    } catch (reflectionCreateError) {
+      console.error('Reflection creation exception:', reflectionCreateError)
+      // 복기 생성 실패해도 세션은 성공으로 처리
+    }
+
     // 생성된 세션 정보 조회
-    const { data: newSession, error: fetchError } = await supabase
+    const { data: sessionDetails, error: fetchError } = await supabase
       .from('sessions')
       .select(`
         *,
@@ -168,7 +209,7 @@ export async function POST(
             id,
             date,
             time_slot,
-          session_period,
+            session_period,
             teacher:teacher_id (
               id,
               name,
@@ -179,11 +220,12 @@ export async function POST(
         problem:problem_id (
           id,
           title,
-          difficulty_level,
-          subject_area
+          limit_minutes,
+          available_date,
+          preview_lead_time
         )
       `)
-      .eq('id', sessionResult.session_id)
+      .eq('id', newSession.id)
       .single()
 
     if (fetchError) {
@@ -192,22 +234,24 @@ export async function POST(
       return NextResponse.json({
         success: true,
         message: '문제가 선택되고 세션이 생성되었습니다.',
-        sessionId: sessionResult.session_id
+        sessionId: newSession.id
       })
     }
 
-    console.log('Session created successfully:', newSession)
+    console.log('Session created successfully:', sessionDetails)
 
     return NextResponse.json({
       success: true,
       message: '문제가 선택되고 세션이 생성되었습니다.',
-      session: newSession
+      session: sessionDetails,
+      sessionId: sessionDetails.id
     })
 
   } catch (error) {
     console.error('Select problem error:', error)
+    console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace')
     return NextResponse.json(
-      { error: '서버 오류가 발생했습니다.' },
+      { error: `서버 오류가 발생했습니다: ${error instanceof Error ? error.message : 'Unknown error'}` },
       { status: 500 }
     )
   }

@@ -32,24 +32,9 @@ interface StudentDetail {
   remaining_tickets: number
   total_sessions: number
   feedback_history: FeedbackHistory[]
-  recent_badges: {
-    badge_type: string
-    earned_at: string
-  }[]
 }
 
 async function getCurrentUser(): Promise<User | null> {
-  // 개발환경에서는 테스트용 교사 사용자 반환
-  if (process.env.NODE_ENV === 'development') {
-    return {
-      id: 14,  // 실제 Supabase의 교사 ID
-      name: '김선생',
-      class_name: '수학교사',
-      role: 'teacher'
-    }
-  }
-  
-  // 프로덕션에서는 정상 인증 로직
   try {
     const cookieStore = await cookies()
     const authCookie = cookieStore.get('auth')
@@ -58,7 +43,7 @@ async function getCurrentUser(): Promise<User | null> {
       return null
     }
 
-    const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3006'}/api/auth/me`, {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/auth/me`, {
       headers: {
         'Cookie': `auth=${authCookie.value}`
       }
@@ -74,7 +59,7 @@ async function getCurrentUser(): Promise<User | null> {
 
 async function getStudentDetail(studentId: string): Promise<StudentDetail | null> {
   try {
-    const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3006'}/api/teacher/students/${studentId}`, {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/teacher/students/${studentId}`, {
       credentials: 'include',  // 쿠키 포함
       cache: 'no-store' // 실시간 데이터
     })
@@ -243,33 +228,7 @@ export default async function StudentDetailPage({ params }: Props) {
           </div>
         </div>
 
-        {/* 최근 배지 */}
-        {student.recent_badges.length > 0 && (
-          <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-            <h3 className="text-lg font-semibold text-gray-800 mb-4">최근 획득 배지</h3>
-            <div className="flex flex-wrap gap-3">
-              {student.recent_badges.map((badge, index) => {
-                const display = getBadgeDisplay(badge.badge_type)
-                return (
-                  <div
-                    key={index}
-                    className="flex items-center space-x-2 px-3 py-2 bg-gray-50 rounded-lg border"
-                  >
-                    <span className="text-lg">{display.icon}</span>
-                    <div>
-                      <span className={`font-medium ${display.color}`}>
-                        {display.label}
-                      </span>
-                      <p className="text-xs text-gray-500">
-                        {formatRelativeTime(badge.earned_at)}
-                      </p>
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-          </div>
-        )}
+        {/* 배지 시스템 제거됨 */}
 
         {/* 피드백 히스토리 */}
         <div className="bg-white rounded-lg shadow-md p-6">

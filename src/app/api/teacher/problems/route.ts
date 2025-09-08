@@ -54,8 +54,9 @@ export async function POST(req: NextRequest) {
     const { 
       title, 
       content, 
-      difficulty_level, 
-      subject_area, 
+      limit_minutes,
+      available_date,
+      is_public = false,
       preview_lead_time = 24,
       images = []
     } = body
@@ -68,9 +69,16 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    if (difficulty_level && (difficulty_level < 1 || difficulty_level > 5)) {
+    if (!limit_minutes || limit_minutes < 1 || limit_minutes > 300) {
       return NextResponse.json(
-        { error: '난이도는 1-5 사이의 값이어야 합니다.' },
+        { error: '제한시간은 1-300분 사이의 값이어야 합니다.' },
+        { status: 400 }
+      )
+    }
+
+    if (!available_date) {
+      return NextResponse.json(
+        { error: '공개 날짜는 필수입니다.' },
         { status: 400 }
       )
     }
@@ -106,15 +114,15 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // 문제 초안 생성 (상태는 draft, is_active는 false)
+    // 문제 생성 (is_public에 따라 상태 결정)
     const { data: newProblem, error } = await supabase
       .from('problems')
       .insert([{
         title,
         content,
-        difficulty_level,
-        subject_area,
-        status: 'draft',
+        limit_minutes,
+        available_date,
+        status: is_public ? 'published' : 'draft',
         preview_lead_time,
         images: images || [],
         created_by: user.id

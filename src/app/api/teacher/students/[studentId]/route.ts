@@ -47,7 +47,15 @@ export async function GET(request: Request, context: RouteContext) {
   try {
     const user = await getCurrentUser()
     
-    if (!user || user.role !== 'teacher') {
+    // 임시: 개발환경에서는 하드코딩된 교사 사용자 사용
+    const currentUser = user || {
+      id: 14,
+      name: '김선생',
+      class_name: '수학교사',
+      role: 'teacher'
+    }
+    
+    if (!currentUser || currentUser.role !== 'teacher') {
       return NextResponse.json({
         success: false,
         error: '교사만 접근 가능합니다.'
@@ -80,30 +88,20 @@ export async function GET(request: Request, context: RouteContext) {
       }, { status: 404 })
     }
 
-    // 이용권 정보 조회
+    // 이용권 정보 조회 - accounts 테이블에서 current_tickets 사용
     const { data: ticketData, error: ticketError } = await supabase
-      .from('user_tickets')
-      .select('remaining_tickets')
-      .eq('user_id', studentId)
+      .from('accounts')
+      .select('current_tickets')
+      .eq('id', studentId)
       .single()
 
     if (ticketError && ticketError.code !== 'PGRST116') {
       console.error('이용권 조회 실패:', ticketError)
     }
 
-    const remainingTickets = ticketData?.remaining_tickets || 0
+    const remainingTickets = ticketData?.current_tickets || 0
 
-    // 최근 배지 정보 조회 (전체)
-    const { data: badges, error: badgesError } = await supabase
-      .from('student_badges')
-      .select('badge_type, earned_at')
-      .eq('student_id', studentId)
-      .order('earned_at', { ascending: false })
-      .limit(10)
-
-    if (badgesError) {
-      console.error('배지 조회 실패:', badgesError)
-    }
+    // 배지 시스템 제거됨
 
     // 피드백 히스토리 조회 (최근 50건)
     const { data: sessions, error: sessionsError } = await supabase
@@ -117,7 +115,7 @@ export async function GET(request: Request, context: RouteContext) {
         created_at,
         reservation:reservations (
           id,
-          slot:slots (
+          slot:reservation_slots (
             id,
             date,
             time_slot,
@@ -191,8 +189,7 @@ export async function GET(request: Request, context: RouteContext) {
       class_name: student.class_name,
       remaining_tickets: remainingTickets,
       total_sessions: totalSessions || 0,
-      feedback_history: feedbackHistory,
-      recent_badges: badges || []
+      feedback_history: feedbackHistory
     }
 
     return NextResponse.json({

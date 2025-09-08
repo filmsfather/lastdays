@@ -14,10 +14,6 @@ interface StudentWithStats {
   name: string
   class_name: string
   remaining_tickets: number
-  recent_badges: {
-    badge_type: string
-    earned_at: string
-  }[]
 }
 
 interface ClassSection {
@@ -26,17 +22,6 @@ interface ClassSection {
 }
 
 async function getCurrentUser(): Promise<User | null> {
-  // 개발환경에서는 테스트용 교사 사용자 반환
-  if (process.env.NODE_ENV === 'development') {
-    return {
-      id: 14,  // 실제 Supabase의 교사 ID
-      name: '김선생',
-      class_name: '수학교사',
-      role: 'teacher'
-    }
-  }
-  
-  // 프로덕션에서는 정상 인증 로직
   try {
     const cookieStore = await cookies()
     const authCookie = cookieStore.get('auth')
@@ -45,7 +30,7 @@ async function getCurrentUser(): Promise<User | null> {
       return null
     }
 
-    const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3006'}/api/auth/me`, {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/auth/me`, {
       headers: {
         'Cookie': `auth=${authCookie.value}`
       }
@@ -61,7 +46,7 @@ async function getCurrentUser(): Promise<User | null> {
 
 async function getStudentsByClass(): Promise<ClassSection[]> {
   try {
-    const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3006'}/api/teacher/students`, {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/teacher/students`, {
       credentials: 'include',  // 쿠키 포함
       cache: 'no-store' // 실시간 데이터
     })
@@ -74,23 +59,7 @@ async function getStudentsByClass(): Promise<ClassSection[]> {
   }
 }
 
-// 배지 타입에 따른 아이콘과 색상
-function getBadgeDisplay(badgeType: string) {
-  switch (badgeType) {
-    case 'perfect_score':
-      return { icon: '⭐', color: 'text-yellow-600', label: '만점' }
-    case 'first_try':
-      return { icon: '🎯', color: 'text-green-600', label: '일발' }
-    case 'improvement':
-      return { icon: '📈', color: 'text-blue-600', label: '향상' }
-    case 'consistency':
-      return { icon: '🔥', color: 'text-red-600', label: '꾸준' }
-    case 'hard_problem':
-      return { icon: '💪', color: 'text-purple-600', label: '도전' }
-    default:
-      return { icon: '🏆', color: 'text-gray-600', label: '기타' }
-  }
-}
+// 배지 시스템 제거됨
 
 export default async function TeacherStudentsPage() {
   const user = await getCurrentUser()
@@ -223,29 +192,11 @@ export default async function TeacherStudentsPage() {
                           </div>
                         </div>
 
-                        {/* 최근 배지 */}
+                        {/* 학습 현황 */}
                         <div>
-                          <p className="text-xs text-gray-500 mb-2">최근 배지 (3개)</p>
-                          <div className="flex space-x-2">
-                            {student.recent_badges.length === 0 ? (
-                              <span className="text-xs text-gray-400">배지 없음</span>
-                            ) : (
-                              student.recent_badges.slice(0, 3).map((badge, index) => {
-                                const display = getBadgeDisplay(badge.badge_type)
-                                return (
-                                  <div
-                                    key={index}
-                                    className="flex items-center space-x-1 px-2 py-1 bg-gray-50 rounded-full"
-                                    title={`${display.label} (${new Date(badge.earned_at).toLocaleDateString('ko-KR')})`}
-                                  >
-                                    <span className="text-sm">{display.icon}</span>
-                                    <span className={`text-xs font-medium ${display.color}`}>
-                                      {display.label}
-                                    </span>
-                                  </div>
-                                )
-                              })
-                            )}
+                          <p className="text-xs text-gray-500 mb-2">학습 현황</p>
+                          <div className="text-xs text-gray-600">
+                            최근 활동을 확인하세요
                           </div>
                         </div>
 

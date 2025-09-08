@@ -66,7 +66,7 @@ export async function GET(request: NextRequest) {
     }
 
     // 주간 슬롯 조회 (기존 로직)
-    if (!week_param) {
+    if (!week) {
       return NextResponse.json(
         { error: 'week 파라미터가 필요합니다. (형식: YYYY-WW)' },
         { status: 400 }
@@ -75,7 +75,7 @@ export async function GET(request: NextRequest) {
 
     // 주차 형식 검증 (YYYY-WW)
     const weekRegex = /^\d{4}-\d{2}$/
-    if (!weekRegex.test(week_param)) {
+    if (!weekRegex.test(week)) {
       return NextResponse.json(
         { error: '올바른 주차 형식이 아닙니다. (형식: YYYY-WW)' },
         { status: 400 }
@@ -83,11 +83,10 @@ export async function GET(request: NextRequest) {
     }
 
     // 주차를 날짜 범위로 변환
-    const [year, weekNum] = week_param.split('-').map(Number)
+    const [year, weekNum] = week.split('-').map(Number)
     const startDate = getDateOfWeek(year, weekNum, 1) // 월요일
     const endDate = getDateOfWeek(year, weekNum, 5)   // 금요일
 
-    console.log('Fetching slots for week:', week_param, 'Date range:', startDate, 'to', endDate)
 
     // 슬롯 조회 (교사 정보 포함)
     const { data: slots, error } = await supabase
@@ -115,7 +114,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      week: week_param,
+      week: week,
       dateRange: { startDate, endDate },
       slots: slots || []
     })
@@ -144,7 +143,6 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const { date, teacherId, blocks } = body
 
-    console.log('Creating slots:', { date, teacherId, blocks })
 
     // 입력값 검증
     if (!date || !teacherId || !blocks || !Array.isArray(blocks)) {
@@ -256,7 +254,6 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    console.log('Created slots:', createdSlots)
 
     return NextResponse.json({
       success: true,

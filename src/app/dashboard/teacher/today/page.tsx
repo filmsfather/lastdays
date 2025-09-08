@@ -78,17 +78,6 @@ function getStatusBadge(reservation: any) {
 }
 
 async function getCurrentUser(): Promise<User | null> {
-  // 개발환경에서는 테스트용 교사 사용자 반환
-  if (process.env.NODE_ENV === 'development') {
-    return {
-      id: 14,  // 실제 Supabase의 교사 ID
-      name: '김선생',
-      class_name: '수학교사',
-      role: 'teacher'
-    }
-  }
-  
-  // 프로덕션에서는 Supabase 직접 호출
   try {
     const cookieStore = await cookies()
     const authCookie = cookieStore.get('auth')

@@ -9,11 +9,18 @@ const supabase = createClient(
 
 async function getCurrentUser() {
   try {
+    console.log('Stats API getCurrentUser called')
     const cookieStore = await cookies()
     const sessionCookie = cookieStore.get('session')
     const userCookie = cookieStore.get('user')
     
+    console.log('Stats API cookies:', {
+      session: sessionCookie ? 'exists' : 'missing',
+      user: userCookie ? 'exists' : 'missing'
+    })
+    
     if (!sessionCookie || !userCookie) {
+      console.log('Stats API: No cookies found')
       return null
     }
 

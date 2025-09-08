@@ -6,10 +6,10 @@ import { redirect } from 'next/navigation'
 interface SessionHistory {
   id: number
   date: string
-  block: number
+  sessionPeriod: string
   teacherName: string
   problemTitle: string
-  finalScore: number
+  finalScore: string
   completedAt: string
 }
 
@@ -20,7 +20,7 @@ interface SessionData {
   reservation: {
     slot: {
       date: string
-      block: number
+      session_period: string
       teacher: {
         name: string
       }
@@ -34,14 +34,11 @@ interface SessionData {
   }>
 }
 
-// 블록 시간 변환 함수
-const getBlockTime = (block: number) => {
-  const times = [
-    '', '09:00-09:40', '09:50-10:30', '10:40-11:20', '11:30-12:10', '12:20-13:00',
-    '13:10-13:50', '14:00-14:40', '14:50-15:30', '15:40-16:20', '16:30-17:10'
-  ]
-  return times[block] || `${block}교시`
+// 세션 시간 변환 함수
+const getSessionPeriodTime = (period: string) => {
+  return period === 'AM' ? '오전' : '오후'
 }
+
 
 // 날짜 포맷팅 함수
 const formatDate = (dateString: string) => {
@@ -54,12 +51,14 @@ const formatDate = (dateString: string) => {
   })
 }
 
-// 레벨 색상 가져오기 함수
-const getScoreColor = (score: number) => {
-  if (score >= 18) return 'text-green-600 font-semibold'
-  if (score >= 15) return 'text-blue-600 font-semibold'
-  if (score >= 12) return 'text-yellow-600 font-semibold'
-  return 'text-red-600 font-semibold'
+// 점수 결과 색상 가져오기 함수
+const getScoreColor = (scoreResult: string) => {
+  if (scoreResult === '미채점') {
+    return 'text-gray-500'
+  }
+  
+  // 점수가 있는 경우 파란색으로 표시
+  return 'text-blue-600 font-semibold'
 }
 
 export default async function StudentHistoryPage() {
@@ -77,9 +76,10 @@ export default async function StudentHistoryPage() {
       status,
       completed_at,
       reservation:reservation_id (
+        student_id,
         slot:slot_id (
           date,
-          block,
+          session_period,
           teacher:teacher_id (
             name
           )
@@ -89,7 +89,10 @@ export default async function StudentHistoryPage() {
         title
       ),
       scores (
-        total_score
+        practical_skills,
+        major_knowledge,
+        major_suitability,
+        attitude
       )
     `)
     .eq('reservation.student_id', currentUser.id)
@@ -101,15 +104,33 @@ export default async function StudentHistoryPage() {
     console.error('Error fetching student history:', error)
   }
 
-  const sessionHistory: SessionHistory[] = ((sessions as any[]) || []).map((session: any) => ({
-    id: session.id,
-    date: session.reservation?.slot?.date,
-    block: session.reservation?.slot?.block,
-    teacherName: session.reservation?.slot?.teacher?.name,
-    problemTitle: session.problem?.title,
-    finalScore: session.scores?.[0]?.total_score || 0,
-    completedAt: session.completed_at
-  }))
+  const sessionHistory: SessionHistory[] = ((sessions as any[]) || []).map((session: any) => {
+    const score = session.scores
+    let scoreDisplay = '미채점'
+    
+    if (score) {
+      const scores = [
+        score.practical_skills,
+        score.major_knowledge,
+        score.major_suitability,
+        score.attitude
+      ].filter(Boolean)
+      
+      if (scores.length > 0) {
+        scoreDisplay = scores.join(' / ')
+      }
+    }
+    
+    return {
+      id: session.id,
+      date: session.reservation?.slot?.date,
+      sessionPeriod: session.reservation?.slot?.session_period,
+      teacherName: session.reservation?.slot?.teacher?.name,
+      problemTitle: session.problem?.title,
+      finalScore: scoreDisplay,
+      completedAt: session.completed_at
+    }
+  })
 
   return (
     <div className="min-h-screen bg-gray-100">
@@ -146,7 +167,7 @@ export default async function StudentHistoryPage() {
                       날짜
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      교시
+                      시간대
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       교사명
@@ -155,7 +176,7 @@ export default async function StudentHistoryPage() {
                       문제 제목
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      최종 점수
+                      채점 결과
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       피드백
@@ -172,7 +193,7 @@ export default async function StudentHistoryPage() {
                         {formatDate(session.date)}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {getBlockTime(session.block)}
+                        {getSessionPeriodTime(session.sessionPeriod)}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                         {session.teacherName} 선생님
@@ -182,7 +203,7 @@ export default async function StudentHistoryPage() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm">
                         <span className={getScoreColor(session.finalScore)}>
-                          {session.finalScore}/20
+                          {session.finalScore}
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm">

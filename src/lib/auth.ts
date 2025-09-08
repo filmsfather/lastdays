@@ -30,7 +30,7 @@ export async function createSession(user: User): Promise<string> {
   const sessionToken = generateSessionToken()
   const expiresAt = getSessionExpiryDate()
   const cookieStore = await cookies()
-
+  
   // 세션 토큰 쿠키 설정
   cookieStore.set('session', sessionToken, {
     httpOnly: true,
@@ -133,7 +133,6 @@ export async function authenticateUser(
   pin: string
 ): Promise<User | null> {
   try {
-    console.log('authenticateUser called with:', { name, pin })
     
     const { data: user, error } = await supabase
       .from('accounts')
@@ -142,10 +141,7 @@ export async function authenticateUser(
       .eq('pin', pin)
       .single()
 
-    console.log('Supabase query result:', { user, error })
-
     if (error || !user) {
-      console.log('Authentication failed - no user found or error occurred')
       return null
     }
 
@@ -156,7 +152,6 @@ export async function authenticateUser(
       role: user.role
     }
 
-    console.log('Authentication successful:', result)
     return result
   } catch (error) {
     console.error('Authentication error:', error)
@@ -168,5 +163,5 @@ export async function authenticateUser(
 export async function cleanupExpiredSessions(): Promise<void> {
   // 쿠키 기반 세션은 브라우저에서 자동으로 만료됨
   // 향후 데이터베이스 기반 세션으로 변경 시 구현
-  console.log('Session cleanup not needed for cookie-based sessions')
+  // Session cleanup not needed for cookie-based sessions
 }

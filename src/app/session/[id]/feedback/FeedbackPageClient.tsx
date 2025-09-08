@@ -1,0 +1,740 @@
+'use client'
+
+import React, { useState, useEffect } from 'react'
+import { toast } from 'react-hot-toast'
+import Link from 'next/link'
+
+interface FeedbackPageProps {
+  sessionData: {
+    sessionId: number
+    status: string
+    startedAt: string
+    completedAt: string | null
+    student: {
+      id: number
+      name: string
+      className: string
+    }
+    teacher: {
+      id: number
+      name: string
+      className: string
+    }
+    slot: {
+      date: string
+      session_period: string
+    }
+    scheduling: {
+      queuePosition: number
+      scheduledStartAt: string
+      previewLeadMinutes: number
+      canShowProblem: boolean
+      timeStatus: 'before_preview' | 'preview_open' | 'waiting_room' | 'interview_ready' | 'session_closed'
+    }
+    problemSnapshot: {
+      id: number
+      title: string
+      content: string
+      limit_minutes: number
+      available_date: string
+      images: any[]
+    } | null
+    scores: {
+      practical_skills: string
+      major_knowledge: string
+      major_suitability: string
+      attitude: string
+    } | null
+    teacherFeedback: Array<{
+      id: number
+      content: string
+      feedback_type: string
+      created_at: string
+    }>
+    checklistItems: Array<{
+      id: number
+      item_text: string
+      is_checked: boolean
+    }>
+    studentReflection: {
+      text: string
+      updated_at: string
+    } | null
+  }
+  currentUser: {
+    id: number
+    role: string
+  }
+}
+
+// 유틸리티 함수들
+const getSessionPeriodTime = (period: string) => {
+  return period === 'AM' ? '오전' : '오후'
+}
+
+const formatDate = (dateString: string) => {
+  const date = new Date(dateString)
+  return date.toLocaleDateString('ko-KR', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    weekday: 'short'
+  })
+}
+
+const getScoreColor = (score: string) => {
+  if (score === '상') return 'text-green-600'
+  if (score === '중상') return 'text-blue-600'
+  if (score === '중') return 'text-yellow-600'
+  if (score === '중하') return 'text-orange-600'
+  if (score === '하') return 'text-red-600'
+  return 'text-gray-600'
+}
+
+export default function FeedbackPageClient({ sessionData: initialSessionData, currentUser }: FeedbackPageProps) {
+  const [sessionData, setSessionData] = useState(initialSessionData)
+  const [scores, setScores] = useState(initialSessionData.scores || {
+    practical_skills: '',
+    major_knowledge: '',
+    major_suitability: '',
+    attitude: ''
+  })
+  
+  const [feedbackContent, setFeedbackContent] = useState('')
+  const [reflectionText, setReflectionText] = useState('')
+  const [newChecklistItem, setNewChecklistItem] = useState('')
+  const [currentTime, setCurrentTime] = useState(new Date())
+
+  // 실시간 시간 업데이트
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(new Date())
+    }, 1000)
+    
+    return () => clearInterval(timer)
+  }, [])
+
+  const isTeacher = currentUser.role === 'teacher'
+  const isStudent = currentUser.role === 'student'
+  const isAdmin = currentUser.role === 'admin'
+
+  // 사용자 역할에 따른 대시보드 경로
+  const getDashboardPath = () => {
+    if (isStudent) return '/dashboard/student/history'
+    if (isTeacher) return '/dashboard/teacher'
+    if (isAdmin) return '/dashboard/admin'
+    return '/dashboard/student/history' // fallback
+  }
+
+  // 실시간 시간 상태 계산
+  const getCurrentTimeStatus = () => {
+    const scheduledStart = new Date(sessionData.scheduling.scheduledStartAt)
+    const previewStart = new Date(scheduledStart.getTime() - sessionData.scheduling.previewLeadMinutes * 60000)
+    const waitingRoomTime = new Date(scheduledStart.getTime() - 5 * 60000)
+    const sessionEnd = new Date(scheduledStart.getTime() + (sessionData.problemSnapshot?.limit_minutes || 60) * 60000)
+
+    if (currentTime >= sessionEnd) {
+      return { status: 'session_closed', canShow: true }
+    } else if (currentTime < previewStart) {
+      return { status: 'before_preview', canShow: false }
+    } else if (currentTime >= previewStart && currentTime < waitingRoomTime) {
+      return { status: 'preview_open', canShow: true }
+    } else if (currentTime >= waitingRoomTime && currentTime < scheduledStart) {
+      return { status: 'waiting_room', canShow: false }
+    } else {
+      return { status: 'interview_ready', canShow: true }
+    }
+  }
+
+  const timeStatus = getCurrentTimeStatus()
+
+  // 시간별 메시지 렌더링
+  const renderTimeBasedMessage = () => {
+    const scheduledStart = new Date(sessionData.scheduling.scheduledStartAt)
+    const previewStart = new Date(scheduledStart.getTime() - sessionData.scheduling.previewLeadMinutes * 60000)
+    const sessionEnd = new Date(scheduledStart.getTime() + (sessionData.problemSnapshot?.limit_minutes || 60) * 60000)
+    
+    if (timeStatus.status === 'session_closed') {
+      return (
+        <div className="bg-gray-50 border border-gray-200 rounded-lg p-6 text-center">
+          <div className="text-gray-800 text-lg font-medium mb-2">
+            세션이 종료되었습니다
+          </div>
+          <div className="text-gray-600">
+            면접이 완료되어 피드백을 확인할 수 있습니다.
+          </div>
+          <div className="text-sm text-gray-500 mt-2">
+            종료 시간: {sessionEnd.toLocaleTimeString('ko-KR', { 
+              hour: '2-digit', 
+              minute: '2-digit',
+              hour12: false 
+            })}
+          </div>
+        </div>
+      )
+    } else if (timeStatus.status === 'before_preview') {
+      return (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 text-center">
+          <div className="text-blue-800 text-lg font-medium mb-2">
+            문제 공개 대기 중
+          </div>
+          <div className="text-blue-600">
+            {previewStart.toLocaleTimeString('ko-KR', { 
+              hour: '2-digit', 
+              minute: '2-digit',
+              hour12: false 
+            })}에 문제가 오픈됩니다.
+          </div>
+          <div className="text-sm text-blue-500 mt-2">
+            면접 예정 시간: {scheduledStart.toLocaleTimeString('ko-KR', { 
+              hour: '2-digit', 
+              minute: '2-digit',
+              hour12: false 
+            })}
+          </div>
+        </div>
+      )
+    } else if (timeStatus.status === 'waiting_room') {
+      return (
+        <div className="bg-orange-50 border border-orange-200 rounded-lg p-6 text-center">
+          <div className="text-orange-800 text-lg font-medium mb-2">
+            면접 5분 전입니다
+          </div>
+          <div className="text-orange-600">
+            면접실 앞에서 대기하세요.
+          </div>
+          <div className="text-sm text-orange-500 mt-2">
+            면접 시간: {scheduledStart.toLocaleTimeString('ko-KR', { 
+              hour: '2-digit', 
+              minute: '2-digit',
+              hour12: false 
+            })}
+          </div>
+        </div>
+      )
+    }
+    return null
+  }
+
+  // 점수 제출 함수
+  const handleScoreSubmit = async () => {
+    try {
+      const response = await fetch(`/api/sessions/${sessionData.sessionId}/scores`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(scores)
+      })
+
+      if (response.ok) {
+        toast.success('점수가 저장되었습니다.')
+        window.location.reload()
+      } else {
+        toast.error('점수 저장에 실패했습니다.')
+      }
+    } catch (error) {
+      toast.error('오류가 발생했습니다.')
+    }
+  }
+
+  // 피드백 제출 함수
+  const handleFeedbackSubmit = async () => {
+    if (!feedbackContent.trim()) {
+      toast.error('피드백 내용을 입력해주세요.')
+      return
+    }
+
+    try {
+      const response = await fetch(`/api/sessions/${sessionData.sessionId}/feedback`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content: feedbackContent })
+      })
+
+      if (response.ok) {
+        toast.success('피드백이 저장되었습니다.')
+        setFeedbackContent('')
+        window.location.reload()
+      } else {
+        toast.error('피드백 저장에 실패했습니다.')
+      }
+    } catch (error) {
+      toast.error('오류가 발생했습니다.')
+    }
+  }
+
+  // 복기 제출 함수
+  const handleReflectionSubmit = async () => {
+    try {
+      const response = await fetch(`/api/sessions/${sessionData.sessionId}/reflection`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reflectionText: reflectionText })
+      })
+
+      if (response.ok) {
+        toast.success('복기가 저장되었습니다.')
+        
+        // sessionData 상태 업데이트
+        setSessionData(prev => ({
+          ...prev,
+          studentReflection: {
+            text: reflectionText,
+            updated_at: new Date().toISOString()
+          }
+        }))
+        
+        // 텍스트박스 초기화
+        setReflectionText('')
+      } else {
+        toast.error('복기 저장에 실패했습니다.')
+      }
+    } catch (error) {
+      toast.error('오류가 발생했습니다.')
+    }
+  }
+
+  // 체크리스트 항목 추가
+  const handleAddChecklistItem = async () => {
+    if (!newChecklistItem.trim()) {
+      toast.error('체크리스트 항목을 입력해주세요.')
+      return
+    }
+
+    try {
+      const response = await fetch(`/api/sessions/${sessionData.sessionId}/checklist`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ item_text: newChecklistItem })
+      })
+
+      if (response.ok) {
+        toast.success('체크리스트 항목이 추가되었습니다.')
+        setNewChecklistItem('')
+        window.location.reload()
+      } else {
+        toast.error('체크리스트 추가에 실패했습니다.')
+      }
+    } catch (error) {
+      toast.error('오류가 발생했습니다.')
+    }
+  }
+
+  // 체크리스트 체크/언체크
+  const handleChecklistToggle = async (itemId: number, isChecked: boolean) => {
+    try {
+      const response = await fetch(`/api/sessions/${sessionData.sessionId}/checklist/${itemId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ is_checked: !isChecked })
+      })
+
+      if (response.ok) {
+        toast.success('체크리스트가 업데이트되었습니다.')
+        window.location.reload()
+      } else {
+        toast.error('체크리스트 업데이트에 실패했습니다.')
+      }
+    } catch (error) {
+      toast.error('오류가 발생했습니다.')
+    }
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-100">
+      <div className="max-w-6xl mx-auto px-4 py-8">
+        {/* 헤더 */}
+        <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+          <div className="flex justify-between items-start">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-800">학습 피드백</h1>
+              <p className="text-gray-600">
+                {formatDate(sessionData.slot.date)} {getSessionPeriodTime(sessionData.slot.session_period)} | 
+                {sessionData.teacher.name} 선생님
+              </p>
+            </div>
+            <Link 
+              href={getDashboardPath()}
+              className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors"
+            >
+              목록으로
+            </Link>
+          </div>
+        </div>
+
+        {/* 문제 정보 - 시간 상태별 조건부 렌더링 */}
+        <div className="bg-white rounded-lg shadow-md p-8 mb-6">
+          <h2 className="text-xl font-bold text-gray-800 mb-6">문제 정보</h2>
+          
+          {/* 시간 기반 메시지 또는 문제 내용 표시 */}
+          {!timeStatus.canShow ? (
+            renderTimeBasedMessage()
+          ) : sessionData.problemSnapshot ? (
+            <div className="space-y-4">
+              <div>
+                <h3 className="font-medium text-gray-700 text-lg mb-2">문제 제목</h3>
+                <p className="text-gray-900 text-lg">{sessionData.problemSnapshot.title}</p>
+              </div>
+              <div className="flex space-x-6">
+                <div>
+                  <h3 className="font-medium text-gray-700 mb-1">제한시간</h3>
+                  <span className="px-3 py-1 bg-blue-100 text-blue-700 text-sm rounded">
+                    {sessionData.problemSnapshot.limit_minutes}분
+                  </span>
+                </div>
+                <div>
+                  <h3 className="font-medium text-gray-700 mb-1">공개일</h3>
+                  <span className="px-3 py-1 bg-green-100 text-green-700 text-sm rounded">
+                    {sessionData.problemSnapshot.available_date}
+                  </span>
+                </div>
+              </div>
+              <div>
+                <h3 className="font-medium text-gray-700 text-lg mb-3">문제 내용</h3>
+                <div className="bg-gray-50 p-6 rounded-lg mt-2">
+                  {/* 텍스트 내용 */}
+                  <div className="prose prose-lg max-w-none text-gray-800 leading-relaxed mb-4">
+                    <pre className="whitespace-pre-wrap text-base text-gray-800 leading-relaxed break-words">
+                      {sessionData.problemSnapshot.content}
+                    </pre>
+                  </div>
+                  
+                  {/* 이미지들 */}
+                  {sessionData.problemSnapshot.images && sessionData.problemSnapshot.images.length > 0 && (
+                    <div className="mt-6 space-y-4">
+                      <h4 className="font-medium text-gray-700">첨부 이미지</h4>
+                      <div className="grid gap-4">
+                        {sessionData.problemSnapshot.images.map((image: any, index: number) => (
+                          <div key={index} className="flex flex-col items-center">
+                            <img
+                              src={image.url || image.src || image}
+                              alt={image.alt || `문제 이미지 ${index + 1}`}
+                              className="max-w-full h-auto rounded-lg shadow-md hover:shadow-lg transition-shadow cursor-pointer"
+                              onClick={() => window.open(image.url || image.src || image, '_blank')}
+                              style={{ maxHeight: '600px', objectFit: 'contain' }}
+                            />
+                            {image.caption && (
+                              <p className="text-sm text-gray-600 mt-2 text-center">
+                                {image.caption}
+                              </p>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          ) : (
+            <p className="text-gray-500">문제 정보가 없습니다.</p>
+          )}
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+          {/* 점수 및 평가 */}
+          <div className="bg-white rounded-lg shadow-md p-6">
+            <h2 className="text-xl font-bold text-gray-800 mb-4">점수 및 평가</h2>
+            {sessionData.scores ? (
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="text-center">
+                    <p className="text-sm text-gray-600">실기</p>
+                    <p className={`text-lg font-semibold ${getScoreColor(sessionData.scores.practical_skills)}`}>
+                      {sessionData.scores.practical_skills}
+                    </p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-sm text-gray-600">전공지식</p>
+                    <p className={`text-lg font-semibold ${getScoreColor(sessionData.scores.major_knowledge)}`}>
+                      {sessionData.scores.major_knowledge}
+                    </p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-sm text-gray-600">전공 적합성</p>
+                    <p className={`text-lg font-semibold ${getScoreColor(sessionData.scores.major_suitability)}`}>
+                      {sessionData.scores.major_suitability}
+                    </p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-sm text-gray-600">태도</p>
+                    <p className={`text-lg font-semibold ${getScoreColor(sessionData.scores.attitude)}`}>
+                      {sessionData.scores.attitude}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ) : isTeacher ? (
+              <div className="space-y-4">
+                <p className="text-gray-500 mb-4">점수를 입력해주세요.</p>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">실기</label>
+                    <select
+                      value={scores.practical_skills}
+                      onChange={(e) => setScores({...scores, practical_skills: e.target.value})}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                    >
+                      <option value="">선택</option>
+                      <option value="상">상</option>
+                      <option value="중상">중상</option>
+                      <option value="중">중</option>
+                      <option value="중하">중하</option>
+                      <option value="하">하</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">전공지식</label>
+                    <select
+                      value={scores.major_knowledge}
+                      onChange={(e) => setScores({...scores, major_knowledge: e.target.value})}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                    >
+                      <option value="">선택</option>
+                      <option value="상">상</option>
+                      <option value="중상">중상</option>
+                      <option value="중">중</option>
+                      <option value="중하">중하</option>
+                      <option value="하">하</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">전공 적합성</label>
+                    <select
+                      value={scores.major_suitability}
+                      onChange={(e) => setScores({...scores, major_suitability: e.target.value})}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                    >
+                      <option value="">선택</option>
+                      <option value="상">상</option>
+                      <option value="중상">중상</option>
+                      <option value="중">중</option>
+                      <option value="중하">중하</option>
+                      <option value="하">하</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">태도</label>
+                    <select
+                      value={scores.attitude}
+                      onChange={(e) => setScores({...scores, attitude: e.target.value})}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                    >
+                      <option value="">선택</option>
+                      <option value="상">상</option>
+                      <option value="중상">중상</option>
+                      <option value="중">중</option>
+                      <option value="중하">중하</option>
+                      <option value="하">하</option>
+                    </select>
+                  </div>
+                </div>
+                <button
+                  onClick={handleScoreSubmit}
+                  className="w-full mt-4 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                >
+                  점수 저장
+                </button>
+              </div>
+            ) : (
+              <p className="text-gray-500">아직 점수가 등록되지 않았습니다.</p>
+            )}
+          </div>
+
+          {/* 교사 피드백 */}
+          <div className="bg-white rounded-lg shadow-md p-6">
+            <h2 className="text-xl font-bold text-gray-800 mb-4">교사 피드백</h2>
+            {sessionData.teacherFeedback.length === 0 ? (
+              <div>
+                <p className="text-gray-500 mb-4">아직 피드백이 등록되지 않았습니다.</p>
+                {isTeacher && (
+                  <div className="space-y-4">
+                    <textarea
+                      value={feedbackContent}
+                      onChange={(e) => setFeedbackContent(e.target.value)}
+                      placeholder="피드백 내용을 입력해주세요..."
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md h-32 resize-none"
+                    />
+                    <button
+                      onClick={handleFeedbackSubmit}
+                      className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
+                    >
+                      피드백 저장
+                    </button>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {sessionData.teacherFeedback.map((feedback) => (
+                  <div key={feedback.id} className="bg-gray-50 p-4 rounded-lg">
+                    <div className="flex justify-between items-start mb-2">
+                      <span className="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded">
+                        {feedback.feedback_type}
+                      </span>
+                      <span className="text-xs text-gray-500">
+                        {new Date(feedback.created_at).toLocaleDateString('ko-KR')}
+                      </span>
+                    </div>
+                    <p className="text-gray-800 whitespace-pre-wrap">
+                      {feedback.content}
+                    </p>
+                  </div>
+                ))}
+                {isTeacher && (
+                  <div className="space-y-4 border-t pt-4">
+                    <textarea
+                      value={feedbackContent}
+                      onChange={(e) => setFeedbackContent(e.target.value)}
+                      placeholder="추가 피드백을 입력해주세요..."
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md h-32 resize-none"
+                    />
+                    <button
+                      onClick={handleFeedbackSubmit}
+                      className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
+                    >
+                      피드백 추가
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* 학습 체크리스트 */}
+          <div className="bg-white rounded-lg shadow-md p-6">
+            <h2 className="text-xl font-bold text-gray-800 mb-4">학습 체크리스트</h2>
+            {sessionData.checklistItems.length === 0 ? (
+              <div>
+                <p className="text-gray-500 mb-4">체크리스트 항목이 없습니다.</p>
+                {isTeacher && (
+                  <div className="space-y-4">
+                    <input
+                      type="text"
+                      value={newChecklistItem}
+                      onChange={(e) => setNewChecklistItem(e.target.value)}
+                      placeholder="체크리스트 항목을 입력해주세요..."
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                    />
+                    <button
+                      onClick={handleAddChecklistItem}
+                      className="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700"
+                    >
+                      항목 추가
+                    </button>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {sessionData.checklistItems.map((item) => (
+                  <div key={item.id} className="flex items-center space-x-3">
+                    <div className={`w-5 h-5 rounded border-2 flex items-center justify-center ${
+                      item.is_checked ? 'bg-green-500 border-green-500' : 'border-gray-300'
+                    }`}>
+                      {item.is_checked && (
+                        <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                        </svg>
+                      )}
+                    </div>
+                    <button
+                      onClick={() => isStudent && handleChecklistToggle(item.id, item.is_checked)}
+                      className={`flex-1 text-left ${item.is_checked ? 'text-gray-500 line-through' : 'text-gray-900'} ${
+                        isStudent ? 'hover:bg-gray-50 p-2 rounded' : ''
+                      }`}
+                      disabled={!isStudent}
+                    >
+                      {item.item_text}
+                    </button>
+                  </div>
+                ))}
+                {isTeacher && (
+                  <div className="space-y-4 border-t pt-4">
+                    <input
+                      type="text"
+                      value={newChecklistItem}
+                      onChange={(e) => setNewChecklistItem(e.target.value)}
+                      placeholder="추가 체크리스트 항목..."
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                    />
+                    <button
+                      onClick={handleAddChecklistItem}
+                      className="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700"
+                    >
+                      항목 추가
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* 학생 복기 */}
+          <div className="bg-white rounded-lg shadow-md p-6 lg:col-span-2">
+            <h2 className="text-xl font-bold text-gray-800 mb-4">학생 복기</h2>
+            {isStudent ? (
+              sessionData.studentReflection?.text ? (
+                <div className="space-y-4">
+                  {/* 저장된 복기 표시 */}
+                  <div className="bg-gray-50 p-4 rounded-lg">
+                    <p className="text-gray-800 whitespace-pre-wrap">
+                      {sessionData.studentReflection.text}
+                    </p>
+                    <p className="text-xs text-gray-500 mt-2">
+                      작성일: {new Date(sessionData.studentReflection.updated_at).toLocaleDateString('ko-KR')}
+                    </p>
+                  </div>
+                  
+                  {/* 수정용 텍스트박스 */}
+                  <div className="space-y-2">
+                    <textarea
+                      value={reflectionText}
+                      onChange={(e) => setReflectionText(e.target.value)}
+                      placeholder="복기를 수정하려면 여기에 새로운 내용을 작성해주세요..."
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md h-32 resize-none"
+                    />
+                    <button
+                      onClick={handleReflectionSubmit}
+                      className="px-4 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700"
+                      disabled={!reflectionText.trim()}
+                    >
+                      복기 수정
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <textarea
+                    value={reflectionText}
+                    onChange={(e) => setReflectionText(e.target.value)}
+                    placeholder="오늘 학습에 대한 복기를 작성해주세요..."
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md h-32 resize-none"
+                  />
+                  <button
+                    onClick={handleReflectionSubmit}
+                    className="px-4 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700"
+                    disabled={!reflectionText.trim()}
+                  >
+                    복기 저장
+                  </button>
+                </div>
+              )
+            ) : sessionData.studentReflection?.text ? (
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <p className="text-gray-800 whitespace-pre-wrap">
+                  {sessionData.studentReflection.text}
+                </p>
+                <p className="text-xs text-gray-500 mt-2">
+                  작성일: {new Date(sessionData.studentReflection.updated_at).toLocaleDateString('ko-KR')}
+                </p>
+              </div>
+            ) : (
+              <p className="text-gray-500">아직 학생 복기가 작성되지 않았습니다.</p>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}

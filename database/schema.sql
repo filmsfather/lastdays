@@ -54,10 +54,11 @@ CREATE TABLE problems (
     id SERIAL PRIMARY KEY,
     title VARCHAR(200) NOT NULL,
     content TEXT NOT NULL,
-    difficulty_level INTEGER CHECK (difficulty_level BETWEEN 1 AND 5),
-    subject_area VARCHAR(100),
+    limit_minutes INTEGER NOT NULL CHECK (limit_minutes BETWEEN 1 AND 300), -- 제한시간 (분)
+    available_date DATE NOT NULL, -- 공개 날짜
     status VARCHAR(20) NOT NULL DEFAULT 'draft' CHECK (status IN ('draft', 'published', 'archived')),
-    preview_lead_time INTEGER NOT NULL DEFAULT 24, -- 사전열람 리드타임 (시간)
+    preview_lead_time INTEGER NOT NULL DEFAULT 24, -- 사전열람 리드타임 (분)
+    images JSONB DEFAULT '[]'::jsonb, -- 이미지 배열
     scheduled_publish_at TIMESTAMP WITH TIME ZONE,
     created_by INTEGER NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
@@ -80,16 +81,10 @@ CREATE TABLE sessions (
 CREATE TABLE scores (
     id SERIAL PRIMARY KEY,
     session_id INTEGER NOT NULL REFERENCES sessions(id) ON DELETE CASCADE,
-    problem_understanding INTEGER CHECK (problem_understanding BETWEEN 1 AND 5),
-    solution_approach INTEGER CHECK (solution_approach BETWEEN 1 AND 5),
-    calculation_accuracy INTEGER CHECK (calculation_accuracy BETWEEN 1 AND 5),
-    presentation_clarity INTEGER CHECK (presentation_clarity BETWEEN 1 AND 5),
-    total_score INTEGER GENERATED ALWAYS AS (
-        COALESCE(problem_understanding, 0) + 
-        COALESCE(solution_approach, 0) + 
-        COALESCE(calculation_accuracy, 0) + 
-        COALESCE(presentation_clarity, 0)
-    ) STORED,
+    practical_skills VARCHAR(10) CHECK (practical_skills IN ('상', '중상', '중', '중하', '하')),
+    major_knowledge VARCHAR(10) CHECK (major_knowledge IN ('상', '중상', '중', '중하', '하')),
+    major_suitability VARCHAR(10) CHECK (major_suitability IN ('상', '중상', '중', '중하', '하')),
+    attitude VARCHAR(10) CHECK (attitude IN ('상', '중상', '중', '중하', '하')),
     scored_by INTEGER NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),

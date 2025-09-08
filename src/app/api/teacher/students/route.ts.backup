@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { cookies } from 'next/headers'
 
@@ -44,23 +44,14 @@ async function getCurrentUser() {
   }
 }
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    console.log('Students API called')
+    console.log('Teacher students API called')
     const user = await getCurrentUser()
-    console.log('Students API user:', user)
+    console.log('Current user:', user)
     
-    // 임시: 개발환경에서는 하드코딩된 교사 사용자 사용
-    const currentUser = user || {
-      id: 14,
-      name: '김선생',
-      class_name: '수학교사',
-      role: 'teacher'
-    }
-    
-    console.log('Using user:', currentUser)
-    
-    if (!currentUser || currentUser.role !== 'teacher') {
+    if (!user || user.role !== 'teacher') {
+      console.log('Access denied - user:', user)
       return NextResponse.json({
         success: false,
         error: '교사만 접근 가능합니다.'
@@ -104,7 +95,8 @@ export async function GET() {
             id: student.id,
             name: student.name,
             class_name: student.class_name,
-            remaining_tickets: remainingTickets
+            remaining_tickets: remainingTickets,
+            recent_badges: []
           }
         } catch (error) {
           console.error(`학생 ${student.id} 데이터 처리 실패:`, error)
@@ -112,7 +104,8 @@ export async function GET() {
             id: student.id,
             name: student.name,
             class_name: student.class_name,
-            remaining_tickets: 0
+            remaining_tickets: 0,
+            recent_badges: []
           }
         }
       })

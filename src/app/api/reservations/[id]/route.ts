@@ -223,8 +223,8 @@ export async function PATCH(
 
       // 오전/오후 교차 검증 (현재 예약 제외)
       if (!validationResult.can_reserve_cross_block) {
-        const currentSlotIsAM = existingReservation.slot.block === 'AM'
-        const newSlotIsAM = newSlot.block === 'AM'
+        const currentSlotIsAM = existingReservation.slot.session_period === 'AM'
+        const newSlotIsAM = newSlot.session_period === 'AM'
         
         if (currentSlotIsAM !== newSlotIsAM) {
           // 다른 블록으로 변경하는 경우에만 검증
