@@ -24,20 +24,21 @@ interface ClassSection {
 async function getCurrentUser(): Promise<User | null> {
   try {
     const cookieStore = await cookies()
-    const authCookie = cookieStore.get('auth')
+    const sessionCookie = cookieStore.get('session')
+    const userCookie = cookieStore.get('user')
     
-    if (!authCookie) {
+    if (!sessionCookie || !userCookie) {
       return null
     }
 
-    const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/auth/me`, {
-      headers: {
-        'Cookie': `auth=${authCookie.value}`
-      }
-    })
-
-    const data = await response.json()
-    return data.success ? data.user : null
+    const userInfo = JSON.parse(userCookie.value)
+    
+    return {
+      id: userInfo.id,
+      name: userInfo.name,
+      class_name: userInfo.className,
+      role: userInfo.role
+    }
   } catch (error) {
     console.error('사용자 정보 조회 실패:', error)
     return null

@@ -80,24 +80,21 @@ function getStatusBadge(reservation: any) {
 async function getCurrentUser(): Promise<User | null> {
   try {
     const cookieStore = await cookies()
-    const authCookie = cookieStore.get('auth')
+    const sessionCookie = cookieStore.get('session')
+    const userCookie = cookieStore.get('user')
     
-    if (!authCookie) {
+    if (!sessionCookie || !userCookie) {
       return null
     }
 
-    const { data: user, error } = await supabase
-      .from('accounts')
-      .select('id, name, class_name, role')
-      .eq('id', parseInt(authCookie.value))
-      .single()
-
-    if (error) {
-      console.error('사용자 조회 실패:', error)
-      return null
+    const userInfo = JSON.parse(userCookie.value)
+    
+    return {
+      id: userInfo.id,
+      name: userInfo.name,
+      class_name: userInfo.className,
+      role: userInfo.role
     }
-
-    return user
   } catch (error) {
     console.error('사용자 정보 조회 실패:', error)
     return null

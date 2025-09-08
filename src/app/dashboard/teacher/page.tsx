@@ -51,7 +51,9 @@ export default function TeacherDashboardPage() {
   useEffect(() => {
     async function fetchCurrentUser() {
       try {
-        const response = await fetch('/api/auth/me')
+        const response = await fetch('/api/auth/me', {
+          credentials: 'include'
+        })
         const data = await response.json()
         
         if (data.success) {

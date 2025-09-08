@@ -125,24 +125,6 @@ type RouteHandlerConfig<Route extends AppRouteHandlerRoutes = AppRouteHandlerRou
   handler satisfies AppPageConfig<"/teacher/problems/new">
 }
 
-// Validate ../../src/app/test-images/page.tsx
-{
-  const handler = {} as typeof import("../../src/app/test-images/page.js")
-  handler satisfies AppPageConfig<"/test-images">
-}
-
-// Validate ../../src/app/test-sessions/page.tsx
-{
-  const handler = {} as typeof import("../../src/app/test-sessions/page.js")
-  handler satisfies AppPageConfig<"/test-sessions">
-}
-
-// Validate ../../src/app/test/page.tsx
-{
-  const handler = {} as typeof import("../../src/app/test/page.js")
-  handler satisfies AppPageConfig<"/test">
-}
-
 // Validate ../../src/app/api/admin/accounts/[id]/route.ts
 {
   const handler = {} as typeof import("../../src/app/api/admin/accounts/[id]/route.js")
@@ -215,6 +197,12 @@ type RouteHandlerConfig<Route extends AppRouteHandlerRoutes = AppRouteHandlerRou
   handler satisfies RouteHandlerConfig<"/api/auth/me">
 }
 
+// Validate ../../src/app/api/change-pin/route.ts
+{
+  const handler = {} as typeof import("../../src/app/api/change-pin/route.js")
+  handler satisfies RouteHandlerConfig<"/api/change-pin">
+}
+
 // Validate ../../src/app/api/me/tickets/route.ts
 {
   const handler = {} as typeof import("../../src/app/api/me/tickets/route.js")
@@ -239,22 +227,34 @@ type RouteHandlerConfig<Route extends AppRouteHandlerRoutes = AppRouteHandlerRou
   handler satisfies RouteHandlerConfig<"/api/reservations">
 }
 
-// Validate ../../src/app/api/sessions/[id]/checklist/[itemId]/toggle/route.ts
+// Validate ../../src/app/api/sessions/[id]/checklist/[itemId]/route.ts
 {
-  const handler = {} as typeof import("../../src/app/api/sessions/[id]/checklist/[itemId]/toggle/route.js")
-  handler satisfies RouteHandlerConfig<"/api/sessions/[id]/checklist/[itemId]/toggle">
+  const handler = {} as typeof import("../../src/app/api/sessions/[id]/checklist/[itemId]/route.js")
+  handler satisfies RouteHandlerConfig<"/api/sessions/[id]/checklist/[itemId]">
 }
 
-// Validate ../../src/app/api/sessions/[id]/feedback-page/route.ts
+// Validate ../../src/app/api/sessions/[id]/checklist/route.ts
 {
-  const handler = {} as typeof import("../../src/app/api/sessions/[id]/feedback-page/route.js")
-  handler satisfies RouteHandlerConfig<"/api/sessions/[id]/feedback-page">
+  const handler = {} as typeof import("../../src/app/api/sessions/[id]/checklist/route.js")
+  handler satisfies RouteHandlerConfig<"/api/sessions/[id]/checklist">
+}
+
+// Validate ../../src/app/api/sessions/[id]/feedback/route.ts
+{
+  const handler = {} as typeof import("../../src/app/api/sessions/[id]/feedback/route.js")
+  handler satisfies RouteHandlerConfig<"/api/sessions/[id]/feedback">
 }
 
 // Validate ../../src/app/api/sessions/[id]/reflection/route.ts
 {
   const handler = {} as typeof import("../../src/app/api/sessions/[id]/reflection/route.js")
   handler satisfies RouteHandlerConfig<"/api/sessions/[id]/reflection">
+}
+
+// Validate ../../src/app/api/sessions/[id]/scores/route.ts
+{
+  const handler = {} as typeof import("../../src/app/api/sessions/[id]/scores/route.js")
+  handler satisfies RouteHandlerConfig<"/api/sessions/[id]/scores">
 }
 
 // Validate ../../src/app/api/slots/route.ts
@@ -279,6 +279,12 @@ type RouteHandlerConfig<Route extends AppRouteHandlerRoutes = AppRouteHandlerRou
 {
   const handler = {} as typeof import("../../src/app/api/student/problems/route.js")
   handler satisfies RouteHandlerConfig<"/api/student/problems">
+}
+
+// Validate ../../src/app/api/student/sessions/route.ts
+{
+  const handler = {} as typeof import("../../src/app/api/student/sessions/route.js")
+  handler satisfies RouteHandlerConfig<"/api/student/sessions">
 }
 
 // Validate ../../src/app/api/teacher/dashboard/stats/route.ts
@@ -321,24 +327,6 @@ type RouteHandlerConfig<Route extends AppRouteHandlerRoutes = AppRouteHandlerRou
 {
   const handler = {} as typeof import("../../src/app/api/teacher/schedule/today/route.js")
   handler satisfies RouteHandlerConfig<"/api/teacher/schedule/today">
-}
-
-// Validate ../../src/app/api/teacher/sessions/[id]/checklist/route.ts
-{
-  const handler = {} as typeof import("../../src/app/api/teacher/sessions/[id]/checklist/route.js")
-  handler satisfies RouteHandlerConfig<"/api/teacher/sessions/[id]/checklist">
-}
-
-// Validate ../../src/app/api/teacher/sessions/[id]/feedback/route.ts
-{
-  const handler = {} as typeof import("../../src/app/api/teacher/sessions/[id]/feedback/route.js")
-  handler satisfies RouteHandlerConfig<"/api/teacher/sessions/[id]/feedback">
-}
-
-// Validate ../../src/app/api/teacher/sessions/[id]/grade/route.ts
-{
-  const handler = {} as typeof import("../../src/app/api/teacher/sessions/[id]/grade/route.js")
-  handler satisfies RouteHandlerConfig<"/api/teacher/sessions/[id]/grade">
 }
 
 // Validate ../../src/app/api/teacher/students/[studentId]/route.ts

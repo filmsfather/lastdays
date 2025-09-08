@@ -134,32 +134,6 @@ export default function LoginPage() {
             </button>
           </form>
 
-          {/* Test Accounts */}
-          <div className="mt-8 pt-6 border-t border-gray-200">
-            <div className="text-center">
-              <p className="text-sm font-medium text-gray-700 mb-4">테스트 계정</p>
-              <div className="grid grid-cols-1 gap-3">
-                <div className="bg-gray-50 rounded-xl p-3">
-                  <div className="flex justify-between items-center text-sm">
-                    <span className="font-medium text-gray-700">관리자</span>
-                    <span className="text-gray-500">관리자 / 1234</span>
-                  </div>
-                </div>
-                <div className="bg-gray-50 rounded-xl p-3">
-                  <div className="flex justify-between items-center text-sm">
-                    <span className="font-medium text-gray-700">교사</span>
-                    <span className="text-gray-500">김선생 / 5678</span>
-                  </div>
-                </div>
-                <div className="bg-gray-50 rounded-xl p-3">
-                  <div className="flex justify-between items-center text-sm">
-                    <span className="font-medium text-gray-700">학생</span>
-                    <span className="text-gray-500">김학생 / 9999</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
         </div>
 
         {/* Footer */}
