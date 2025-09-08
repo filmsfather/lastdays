@@ -361,10 +361,24 @@ export default function StudentDashboard() {
     }
   }
 
-  // 당일 예약인지 확인
-  const isTodayReservation = (reservation: Reservation) => {
-    const today = new Date().toISOString().split('T')[0]
-    return reservation.slot.date === today
+  // 한국 시간대 기준으로 오늘 날짜 가져오기
+  const getKoreanDate = (date?: Date) => {
+    const now = date || new Date()
+    // UTC에서 KST(+9시간) 변환
+    const kstTime = new Date(now.getTime() + (9 * 60 * 60 * 1000))
+    return kstTime.toISOString().split('T')[0]
+  }
+
+  // 당일 또는 미래 예약인지 확인
+  const isFutureOrTodayReservation = (reservation: Reservation) => {
+    const today = getKoreanDate()
+    return reservation.slot.date >= today
+  }
+
+  // 과거 예약인지 확인
+  const isPastReservation = (reservation: Reservation) => {
+    const today = getKoreanDate()
+    return reservation.slot.date < today
   }
 
   // PIN 변경
@@ -421,9 +435,10 @@ export default function StudentDashboard() {
     })
   }
 
-  // 시간 포맷팅
+  // 시간 포맷팅 (초 제거)
   const formatTimeSlot = (timeSlot: string) => {
-    return timeSlot // "10:00", "10:10" 등 그대로 표시
+    // "10:00:00" -> "10:00", "10:10:30" -> "10:10"
+    return timeSlot.substring(0, 5)
   }
 
   // 세션 구분 한글 변환
@@ -569,8 +584,8 @@ export default function StudentDashboard() {
             </button>
           </div>
 
-          {/* 내 예약 요약 */}
-          {reservations.length > 0 && (
+          {/* 내 예약 요약 - 미래/당일 예약만 표시 */}
+          {reservations.filter(isFutureOrTodayReservation).length > 0 && (
             <div className="mb-8 p-6 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl border border-blue-200">
               <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center">
                 <div className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center mr-3">
@@ -578,65 +593,69 @@ export default function StudentDashboard() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                 </div>
-                내 예약 현황 ({reservations.length}개)
+                내 예약 현황 ({reservations.filter(isFutureOrTodayReservation).length}개)
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {reservations.map((reservation) => (
-                  <div
-                    key={reservation.id}
-                    className={`p-4 rounded-xl border-2 transition-all duration-200 ${
-                      reservation.status === 'completed' ? 'bg-green-50 border-green-200' :
-                      reservation.problem_selected ? 'bg-blue-50 border-blue-200' :
-                      isTodayReservation(reservation) ? 'bg-amber-50 border-amber-200' :
-                      'bg-white border-gray-200'
-                    }`}
-                  >
-                    <div className="flex justify-between items-start mb-3">
-                      <div>
-                        <p className="font-semibold text-gray-800 text-sm">
-                          {formatDate(reservation.slot.date)}
-                        </p>
-                        <p className="text-gray-600 text-sm">
-                          {getSessionLabel(reservation.slot.session_period)} {formatTimeSlot(reservation.slot.time_slot)}
-                        </p>
-                        <p className="text-gray-500 text-xs">
-                          {reservation.slot.teacher.name} 선생님
-                        </p>
+                {reservations.filter(isFutureOrTodayReservation).map((reservation) => {
+                  const isToday = reservation.slot.date === getKoreanDate()
+                  return (
+                    <div
+                      key={reservation.id}
+                      className={`p-4 rounded-xl border-2 transition-all duration-200 ${
+                        reservation.status === 'completed' ? 'bg-green-50 border-green-200' :
+                        reservation.problem_selected ? 'bg-blue-50 border-blue-200' :
+                        isToday ? 'bg-amber-50 border-amber-200' :
+                        'bg-white border-gray-200'
+                      }`}
+                    >
+                      <div className="flex justify-between items-start mb-3">
+                        <div>
+                          <p className="font-semibold text-gray-800 text-sm">
+                            {formatDate(reservation.slot.date)}
+                            {isToday && <span className="ml-2 text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full">오늘</span>}
+                          </p>
+                          <p className="text-gray-600 text-sm">
+                            {getSessionLabel(reservation.slot.session_period)} {formatTimeSlot(reservation.slot.time_slot)}
+                          </p>
+                          <p className="text-gray-500 text-xs">
+                            {reservation.slot.teacher.name} 선생님
+                          </p>
+                        </div>
+                        <span className={`px-2 py-1 rounded-lg text-xs font-medium ${
+                          reservation.status === 'completed' ? 'bg-green-100 text-green-800' :
+                          reservation.problem_selected ? 'bg-blue-100 text-blue-800' :
+                          'bg-yellow-100 text-yellow-800'
+                        }`}>
+                          {reservation.status === 'completed' ? '완료' :
+                           reservation.problem_selected ? '문제선택완료' : '예약됨'}
+                        </span>
                       </div>
-                      <span className={`px-2 py-1 rounded-lg text-xs font-medium ${
-                        reservation.status === 'completed' ? 'bg-green-100 text-green-800' :
-                        reservation.problem_selected ? 'bg-blue-100 text-blue-800' :
-                        'bg-yellow-100 text-yellow-800'
-                      }`}>
-                        {reservation.status === 'completed' ? '완료' :
-                         reservation.problem_selected ? '문제선택완료' : '예약됨'}
-                      </span>
+                      <div className="flex space-x-2">
+                        {isToday && !reservation.problem_selected && (
+                          <button
+                            onClick={async () => {
+                              setCurrentReservationId(reservation.id)
+                              // 해당 예약 날짜에 맞는 문제들만 가져오기
+                              await fetchProblems(reservation.slot.date)
+                              setShowProblemModal(true)
+                            }}
+                            className="flex-1 btn-primary text-xs py-2"
+                          >
+                            문제 선택
+                          </button>
+                        )}
+                        {reservation.status === 'active' && (
+                          <button
+                            onClick={() => cancelReservation(reservation.id)}
+                            className="flex-1 px-3 py-2 bg-red-500 text-white text-xs rounded-lg font-medium hover:bg-red-600 transition-colors"
+                          >
+                            취소
+                          </button>
+                        )}
+                      </div>
                     </div>
-                    <div className="flex space-x-2">
-                      {isTodayReservation(reservation) && !reservation.problem_selected && (
-                        <button
-                          onClick={async () => {
-                            setCurrentReservationId(reservation.id)
-                            // 해당 예약 날짜에 맞는 문제들만 가져오기
-                            await fetchProblems(reservation.slot.date)
-                            setShowProblemModal(true)
-                          }}
-                          className="flex-1 btn-primary text-xs py-2"
-                        >
-                          문제 선택
-                        </button>
-                      )}
-                      {reservation.status === 'active' && (
-                        <button
-                          onClick={() => cancelReservation(reservation.id)}
-                          className="flex-1 px-3 py-2 bg-red-500 text-white text-xs rounded-lg font-medium hover:bg-red-600 transition-colors"
-                        >
-                          취소
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                ))}
+                  )
+                })}
               </div>
             </div>
           )}
@@ -654,8 +673,10 @@ export default function StudentDashboard() {
             {getWeekDates(currentWeekStart).map((date, index) => {
               const daySlots = getSlotsByDate(date)
               const dayReservations = reservations.filter(res => res.slot.date === date.toISOString().split('T')[0])
-              const isToday = date.toDateString() === new Date().toDateString()
-              const isPast = date < new Date() && !isToday
+              const todayKST = getKoreanDate()
+              const dateString = date.toISOString().split('T')[0]
+              const isToday = dateString === todayKST
+              const isPast = dateString < todayKST
               
               return (
                 <div
@@ -706,25 +727,19 @@ export default function StudentDashboard() {
                       </div>
                     </div>
                   ) : (
-                    <div className="space-y-2">
+                    <div className="space-y-1">
                       {daySlots.map((slot) => (
                         <div
                           key={slot.id}
-                          className={`p-3 rounded-xl cursor-pointer transition-all duration-200 border-2 ${
+                          className={`p-2 rounded-lg cursor-pointer transition-all duration-200 border ${
                             selectedSlot === slot.id
-                              ? 'bg-green-100 border-green-400 shadow-md scale-105'
-                              : 'bg-gray-50 hover:bg-gray-100 border-gray-200 hover:border-gray-300 hover:shadow-sm'
+                              ? 'bg-green-100 border-green-400 shadow-sm'
+                              : 'bg-gray-50 hover:bg-gray-100 border-gray-200 hover:border-gray-300'
                           } ${isPast ? 'cursor-not-allowed opacity-50' : ''}`}
                           onClick={() => !isPast && setSelectedSlot(slot.id)}
                         >
-                          <div className="font-semibold text-gray-800 text-sm">
+                          <div className="font-medium text-gray-800 text-sm text-center">
                             {getSessionLabel(slot.session_period)} {formatTimeSlot(slot.time_slot)}
-                          </div>
-                          <div className="text-gray-600 text-sm truncate">
-                            {slot.teacher_name} 선생님
-                          </div>
-                          <div className="text-gray-500 text-xs">
-                            {slot.current_reservations}/{slot.max_capacity}명
                           </div>
                         </div>
                       ))}
