@@ -131,7 +131,8 @@ export default function FeedbackPageClient({ sessionData: initialSessionData, cu
     const scheduledStart = new Date(sessionData.scheduling.scheduledStartAt)
     const previewStart = new Date(scheduledStart.getTime() - sessionData.scheduling.previewLeadMinutes * 60000)
     const waitingRoomTime = new Date(scheduledStart.getTime() - 5 * 60000)
-    const sessionEnd = new Date(scheduledStart.getTime() + (sessionData.problemSnapshot?.limit_minutes || 60) * 60000)
+    const INTERVIEW_DURATION_MINUTES = 10
+    const sessionEnd = new Date(scheduledStart.getTime() + INTERVIEW_DURATION_MINUTES * 60000)
 
     if (currentTime >= sessionEnd) {
       return { status: 'session_closed', canShow: true }
@@ -152,7 +153,8 @@ export default function FeedbackPageClient({ sessionData: initialSessionData, cu
   const renderTimeBasedMessage = () => {
     const scheduledStart = new Date(sessionData.scheduling.scheduledStartAt)
     const previewStart = new Date(scheduledStart.getTime() - sessionData.scheduling.previewLeadMinutes * 60000)
-    const sessionEnd = new Date(scheduledStart.getTime() + (sessionData.problemSnapshot?.limit_minutes || 60) * 60000)
+    const INTERVIEW_DURATION_MINUTES = 10
+    const sessionEnd = new Date(scheduledStart.getTime() + INTERVIEW_DURATION_MINUTES * 60000)
     
     if (timeStatus.status === 'session_closed') {
       return (

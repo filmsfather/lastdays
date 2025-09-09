@@ -40,7 +40,7 @@ export function calculateScheduledStartTime(
 export function canShowProblemNow(
   scheduledStartAt: Date,
   previewLeadMinutes: number,
-  now: Date = new Date()
+  now: Date = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Seoul' }))
 ): boolean {
   const showTime = new Date(scheduledStartAt.getTime() - previewLeadMinutes * 60 * 1000)
   return now >= showTime
@@ -51,7 +51,7 @@ export function canShowProblemNow(
  */
 export function calculateProblemSchedule(params: ScheduleCalculationParams): ScheduleResult {
   const { blockStart, queuePosition, previewLeadMinutes } = params
-  const now = new Date()
+  const now = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Seoul' }))
   
   // 1. 예약된 시작 시간 계산
   const scheduledStartAt = calculateScheduledStartTime(blockStart, queuePosition)
@@ -166,4 +166,11 @@ export function adjustForTimezone(date: Date, timezone: string = 'Asia/Seoul'): 
     console.warn('Timezone adjustment failed, using local time:', error)
     return date
   }
+}
+
+/**
+ * 현재 한국 시간을 가져오는 유틸리티 함수
+ */
+export function getKoreanTime(): Date {
+  return new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Seoul' }))
 }
