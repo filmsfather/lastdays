@@ -223,7 +223,7 @@ export default function TeacherStudentsPage() {
                     {section.students.map((student) => (
                       <Link
                         key={student.id}
-                        href={`/dashboard/teacher/students/${student.id}`}
+                        href={`/dashboard/student/history?studentId=${student.id}`}
                         className="block p-4 border border-gray-200 rounded-lg hover:border-blue-300 hover:shadow-md transition-all cursor-pointer"
                       >
                         <div className="flex justify-between items-start mb-3">
