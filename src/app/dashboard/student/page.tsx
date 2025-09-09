@@ -538,18 +538,23 @@ export default function StudentDashboard() {
     <div className="min-h-screen gradient-bg">
       {/* Navigation */}
       <nav className="bg-white/80 backdrop-blur-sm border-b border-white/20 sticky top-0 z-40">
-        <div className="max-w-7xl mx-auto px-6 py-4">
+        <div className="max-w-7xl mx-auto px-4 lg:px-6 py-4">
           <div className="flex justify-between items-center">
             <div className="flex items-center space-x-3">
               <div className="w-8 h-8 bg-blue-600 rounded-xl flex items-center justify-center">
                 <span className="text-white font-bold text-sm">L</span>
               </div>
-              <div>
+              <div className="hidden sm:block">
                 <span className="text-lg font-bold text-gray-900">Last Days</span>
                 <p className="text-sm text-gray-600">학생 대시보드</p>
               </div>
+              <div className="sm:hidden">
+                <span className="text-base font-bold text-gray-900">Last Days</span>
+              </div>
             </div>
-            <div className="flex items-center space-x-4">
+            
+            {/* 데스크톱 메뉴 */}
+            <div className="hidden md:flex items-center space-x-4">
               <Link 
                 href="/dashboard/student/history"
                 className="btn-ghost"
@@ -571,17 +576,46 @@ export default function StudentDashboard() {
                 </div>
               </div>
             </div>
+
+            {/* 모바일 메뉴 */}
+            <div className="md:hidden flex items-center space-x-2">
+              <div className="flex items-center px-3 py-1 bg-blue-50 rounded-lg border border-blue-100">
+                <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse mr-2"></div>
+                <span className="text-blue-700 font-bold text-lg">{remainingTickets}</span>
+                <span className="text-blue-600 text-xs ml-1">장</span>
+              </div>
+              <Link 
+                href="/dashboard/student/history"
+                className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                </svg>
+              </Link>
+              <button
+                onClick={() => setShowPinChangeModal(true)}
+                className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m0 0a2 2 0 012 2m-2-2a2 2 0 00-2 2m2 2v2a2 2 0 01-2 2m-2-2a2 2 0 01-2-2m2-2a2 2 0 012-2m0 0V5a2 2 0 00-2-2m-4 6V4a1 1 0 011-1h4a1 1 0 011 1v2m-6 0a1 1 0 00-1 1v4a1 1 0 001 1m-1-5h2m5 0h2" />
+                </svg>
+              </button>
+            </div>
           </div>
         </div>
       </nav>
 
-      <div className="max-w-7xl mx-auto px-6 py-8">
+      <div className="max-w-7xl mx-auto px-4 lg:px-6 py-6 lg:py-8">
         {/* Welcome Header */}
-        <div className="mb-8 animate-fade-in">
-          <h1 className="text-4xl font-bold text-gray-900 mb-2">
+        <div className="mb-6 lg:mb-8 animate-fade-in">
+          <h1 className="text-2xl lg:text-4xl font-bold text-gray-900 mb-2">
             안녕하세요, <span className="bg-gradient-to-r from-blue-600 to-blue-600 bg-clip-text text-transparent">{user?.name}</span>님!
           </h1>
-          <p className="text-xl text-gray-600">{user?.className} • 체계적인 학습으로 목표를 달성해보세요</p>
+          <p className="text-base lg:text-xl text-gray-600">
+            <span className="block lg:inline">{user?.className}</span>
+            <span className="hidden lg:inline"> • </span>
+            <span className="block lg:inline text-sm lg:text-xl">체계적인 학습으로 목표를 달성해보세요</span>
+          </p>
         </div>
 
         {/* 통합 예약 캘린더 */}
@@ -596,43 +630,82 @@ export default function StudentDashboard() {
           </div>
 
           {/* 주간 네비게이션 */}
-          <div className="flex items-center justify-between mb-8 p-4 bg-gradient-to-r from-gray-50 to-blue-50 rounded-xl border border-gray-200">
-            <button
-              onClick={goToPreviousWeek}
-              className="flex items-center px-4 py-2 text-gray-600 hover:text-gray-900 hover:bg-white rounded-lg transition-all shadow-sm hover:shadow-md"
-            >
-              <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              </svg>
-              이전 주
-            </button>
-            
-            <div className="flex items-center space-x-3">
-              <h3 className="text-xl font-bold text-gray-900">
-                {currentWeekStart.getFullYear()}년 {currentWeekStart.getMonth() + 1}월 {currentWeekStart.getDate()}일 주간
-              </h3>
+          <div className="mb-6 lg:mb-8 p-3 lg:p-4 bg-gradient-to-r from-gray-50 to-blue-50 rounded-xl border border-gray-200">
+            {/* 데스크톱 버전 */}
+            <div className="hidden lg:flex items-center justify-between">
               <button
-                onClick={goToCurrentWeek}
-                className="px-4 py-2 text-sm bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors shadow-sm"
+                onClick={goToPreviousWeek}
+                className="flex items-center px-4 py-2 text-gray-600 hover:text-gray-900 hover:bg-white rounded-lg transition-all shadow-sm hover:shadow-md"
               >
-                이번 주
+                <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                </svg>
+                이전 주
+              </button>
+              
+              <div className="flex items-center space-x-3">
+                <h3 className="text-xl font-bold text-gray-900">
+                  {currentWeekStart.getFullYear()}년 {currentWeekStart.getMonth() + 1}월 {currentWeekStart.getDate()}일 주간
+                </h3>
+                <button
+                  onClick={goToCurrentWeek}
+                  className="px-4 py-2 text-sm bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors shadow-sm"
+                >
+                  이번 주
+                </button>
+              </div>
+
+              <button
+                onClick={goToNextWeek}
+                className="flex items-center px-4 py-2 text-gray-600 hover:text-gray-900 hover:bg-white rounded-lg transition-all shadow-sm hover:shadow-md"
+              >
+                다음 주
+                <svg className="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
               </button>
             </div>
 
-            <button
-              onClick={goToNextWeek}
-              className="flex items-center px-4 py-2 text-gray-600 hover:text-gray-900 hover:bg-white rounded-lg transition-all shadow-sm hover:shadow-md"
-            >
-              다음 주
-              <svg className="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
-            </button>
+            {/* 모바일 버전 */}
+            <div className="lg:hidden">
+              <div className="text-center mb-3">
+                <h3 className="text-lg font-bold text-gray-900 mb-1">
+                  {currentWeekStart.getFullYear()}년 {currentWeekStart.getMonth() + 1}월 {currentWeekStart.getDate()}일 주간
+                </h3>
+                <button
+                  onClick={goToCurrentWeek}
+                  className="px-3 py-1 text-xs bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors shadow-sm"
+                >
+                  이번 주로
+                </button>
+              </div>
+              <div className="flex items-center justify-between">
+                <button
+                  onClick={goToPreviousWeek}
+                  className="flex items-center px-3 py-2 text-gray-600 hover:text-gray-900 hover:bg-white rounded-lg transition-all shadow-sm"
+                >
+                  <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                  </svg>
+                  이전 주
+                </button>
+                
+                <button
+                  onClick={goToNextWeek}
+                  className="flex items-center px-3 py-2 text-gray-600 hover:text-gray-900 hover:bg-white rounded-lg transition-all shadow-sm"
+                >
+                  다음 주
+                  <svg className="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </button>
+              </div>
+            </div>
           </div>
 
           {/* 내 예약 요약 - 미래/당일 예약만 표시 */}
           {reservations.filter(isFutureOrTodayReservation).length > 0 && (
-            <div className="mb-8 p-6 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl border border-blue-200">
+            <div className="mb-6 lg:mb-8 p-4 lg:p-6 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl border border-blue-200">
               <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center">
                 <div className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center mr-3">
                   <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -641,7 +714,7 @@ export default function StudentDashboard() {
                 </div>
                 내 예약 현황 ({reservations.filter(isFutureOrTodayReservation).length}개)
               </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 lg:gap-4">
                 {reservations.filter(isFutureOrTodayReservation).map((reservation) => {
                   const isToday = reservation.slot.date === getKoreanDate()
                   return (
@@ -706,7 +779,8 @@ export default function StudentDashboard() {
             </div>
           )}
 
-          {/* 주간 캘린더 그리드 - 더 큰 사이즈 */}
+          {/* 데스크톱: 주간 캘린더 그리드 */}
+          <div className="hidden lg:block">
           <div className="grid grid-cols-7 gap-2 mb-6">
             {['월요일', '화요일', '수요일', '목요일', '금요일', '토요일', '일요일'].map((day, index) => (
               <div key={day} className="text-center p-4 text-lg font-bold text-gray-700 bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl border border-gray-200">
@@ -795,6 +869,159 @@ export default function StudentDashboard() {
               )
             })}
           </div>
+          </div>
+
+          {/* 모바일/태블릿: 날짜별 리스트 뷰 */}
+          <div className="lg:hidden">
+            <div className="space-y-4 max-h-[70vh] overflow-y-auto">
+              {getWeekDates(currentWeekStart).map((date, index) => {
+                const daySlots = getSlotsByDate(date)
+                const dateString = formatDateString(date)
+                const dayReservations = reservations.filter(res => res.slot.date === dateString)
+                const todayKST = getKoreanDate()
+                const isToday = dateString === todayKST
+                const isPast = dateString < todayKST
+                
+                // 빈 날짜는 건너뛰기 (예약도 없고 슬롯도 없으면)
+                if (daySlots.length === 0 && dayReservations.length === 0) {
+                  return null
+                }
+                
+                return (
+                  <div
+                    key={index}
+                    className={`border-2 rounded-2xl transition-all duration-200 ${
+                      isPast ? 'bg-gray-50 opacity-70' : 'bg-white'
+                    } ${isToday ? 'border-blue-400 bg-blue-50 shadow-lg' : 'border-gray-200'}`}
+                  >
+                    {/* 날짜 헤더 */}
+                    <div className={`p-4 border-b ${
+                      isToday ? 'bg-blue-100 border-blue-200' : 'bg-gray-50 border-gray-200'
+                    } rounded-t-2xl`}>
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h3 className={`text-xl font-bold ${
+                            isToday ? 'text-blue-700' : 'text-gray-700'
+                          }`}>
+                            {formatDateShort(date)}
+                          </h3>
+                          {isToday && (
+                            <span className="inline-block mt-1 px-2 py-1 bg-blue-200 text-blue-800 text-xs rounded-full font-medium">
+                              오늘
+                            </span>
+                          )}
+                        </div>
+                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
+                          isToday ? 'bg-blue-200' : 'bg-gray-100'
+                        }`}>
+                          <svg className={`w-6 h-6 ${isToday ? 'text-blue-600' : 'text-gray-400'}`} 
+                               fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
+                                  d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 002 2z" />
+                          </svg>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="p-4 space-y-3">
+                      {/* 내 예약 표시 */}
+                      {dayReservations.map((reservation) => (
+                        <div
+                          key={`mobile-reservation-${reservation.id}`}
+                          className={`p-4 rounded-xl border-2 ${
+                            reservation.status === 'completed' ? 'bg-green-50 border-green-200' :
+                            reservation.problem_selected ? 'bg-blue-50 border-blue-200' :
+                            'bg-amber-50 border-amber-200'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center">
+                              <div className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center mr-3">
+                                <span className="text-white text-sm font-bold">예약</span>
+                              </div>
+                              <div>
+                                <p className="font-semibold text-gray-800 text-base">
+                                  {getSessionLabel(reservation.slot.session_period)} {formatTimeSlot(reservation.slot.time_slot)}
+                                </p>
+                                <p className="text-sm text-gray-600">
+                                  {reservation.slot.teacher.name} 선생님
+                                </p>
+                              </div>
+                            </div>
+                            <span className={`px-3 py-1 rounded-lg text-sm font-medium ${
+                              reservation.status === 'completed' ? 'bg-green-100 text-green-800' :
+                              reservation.problem_selected ? 'bg-blue-100 text-blue-800' :
+                              'bg-yellow-100 text-yellow-800'
+                            }`}>
+                              {reservation.status === 'completed' ? '완료' :
+                               reservation.problem_selected ? '문제선택완료' : '예약됨'}
+                            </span>
+                          </div>
+                          
+                          {/* 모바일용 액션 버튼들 */}
+                          {isToday && !reservation.problem_selected && (
+                            <button
+                              onClick={async () => {
+                                setCurrentReservationId(reservation.id)
+                                await fetchProblems(reservation.slot.date)
+                                setShowProblemModal(true)
+                              }}
+                              className="w-full mt-3 py-3 bg-blue-600 text-white rounded-xl font-semibold hover:bg-blue-700 transition-colors"
+                            >
+                              문제 선택하기 ✨
+                            </button>
+                          )}
+                          {reservation.status === 'active' && (
+                            <button
+                              onClick={() => cancelReservation(reservation.id)}
+                              className="w-full mt-3 py-3 bg-red-500 text-white rounded-xl font-semibold hover:bg-red-600 transition-colors"
+                            >
+                              예약 취소
+                            </button>
+                          )}
+                        </div>
+                      ))}
+                      
+                      {/* 예약 가능한 슬롯 표시 */}
+                      {daySlots.length > 0 && (
+                        <div className="space-y-2">
+                          <h4 className="text-base font-semibold text-gray-700 mb-3">
+                            예약 가능한 시간 ({daySlots.length}개)
+                          </h4>
+                          <div className="grid grid-cols-2 gap-2">
+                            {daySlots.map((slot) => (
+                              <button
+                                key={slot.id}
+                                className={`p-4 rounded-xl font-semibold transition-all duration-200 border-2 ${
+                                  selectedSlot === slot.id
+                                    ? 'bg-green-100 border-green-400 text-green-800 shadow-md scale-105'
+                                    : 'bg-white border-gray-200 text-gray-700 hover:border-blue-300 hover:bg-blue-50'
+                                } ${isPast ? 'cursor-not-allowed opacity-50' : 'active:scale-95'}`}
+                                onClick={() => !isPast && setSelectedSlot(slot.id)}
+                                disabled={isPast}
+                              >
+                                <div className="text-center">
+                                  <div className="text-base font-bold">
+                                    {getSessionLabel(slot.session_period)}
+                                  </div>
+                                  <div className="text-lg font-bold mt-1">
+                                    {formatTimeSlot(slot.time_slot)}
+                                  </div>
+                                  <div className="text-xs text-gray-500 mt-1">
+                                    {slot.teacher_name} 선생님
+                                  </div>
+                                </div>
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
 
           {/* 예약하기 버튼 */}
           <div className="mt-8 pt-6 border-t-2 border-gray-200">
@@ -839,15 +1066,15 @@ export default function StudentDashboard() {
               {sessions.map((session) => (
                 <div
                   key={session.id}
-                  className={`p-5 rounded-2xl border-2 transition-all duration-200 hover:shadow-lg ${
+                  className={`p-4 lg:p-5 rounded-2xl border-2 transition-all duration-200 hover:shadow-lg ${
                     session.status === 'completed' ? 'bg-green-50 border-green-200' :
                     session.status === 'feedback_pending' ? 'bg-blue-50 border-blue-200' :
                     'bg-amber-50 border-amber-200'
                   }`}
                 >
-                  <div className="flex justify-between items-start mb-3">
-                    <div className="flex-1">
-                      <h3 className="font-semibold text-gray-800 truncate">
+                  <div className="flex flex-col lg:flex-row justify-between items-start mb-3">
+                    <div className="flex-1 w-full">
+                      <h3 className="font-semibold text-gray-800 text-base lg:text-lg mb-1">
                         {session.problemTitle}
                       </h3>
                       <p className="text-sm text-gray-600 mt-1">
@@ -857,7 +1084,7 @@ export default function StudentDashboard() {
                         {session.teacherName} 선생님 • {session.limitMinutes}분
                       </p>
                     </div>
-                    <span className={`px-2 py-1 rounded-lg text-xs font-medium ${
+                    <span className={`px-3 py-1 rounded-lg text-xs font-medium mt-2 lg:mt-0 lg:ml-3 ${
                       session.status === 'completed' ? 'bg-green-100 text-green-800' :
                       session.status === 'feedback_pending' ? 'bg-blue-100 text-blue-800' :
                       'bg-amber-100 text-amber-800'
@@ -899,9 +1126,10 @@ export default function StudentDashboard() {
                       console.log('세션 ID:', session.id)
                       router.push(`/session/${session.id}/feedback`)
                     }}
-                    className="w-full py-3 px-4 bg-white border border-gray-300 rounded-xl text-gray-700 font-medium hover:bg-gray-50 hover:border-gray-400 transition-all duration-200"
+                    className="w-full py-3 px-4 bg-white border border-gray-300 rounded-xl text-gray-700 font-medium hover:bg-gray-50 hover:border-gray-400 transition-all duration-200 text-sm lg:text-base"
                   >
-                    피드백 페이지 보기 →
+                    <span className="hidden lg:inline">피드백 페이지 보기 →</span>
+                    <span className="lg:hidden">피드백 보기 →</span>
                   </button>
                 </div>
               ))}
