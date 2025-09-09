@@ -361,6 +361,13 @@ export default function TeacherDashboardPage() {
                       <p className="text-sm text-purple-800 mt-2">문제 관리</p>
                     </button>
                     <Link
+                      href="/hall-of-fame"
+                      className="p-4 bg-yellow-50 rounded-lg hover:bg-yellow-100 transition-colors text-center"
+                    >
+                      <div className="text-yellow-600 font-medium">🏆</div>
+                      <p className="text-sm text-yellow-800 mt-2">명예의 전당</p>
+                    </Link>
+                    <Link
                       href="/dashboard/admin"
                       className="p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors text-center"
                     >

@@ -432,6 +432,12 @@ function AdminDashboard() {
                 타임슬롯 관리 (새 창)
               </button>
               <button
+                onClick={() => window.open('/hall-of-fame', '_blank')}
+                className="w-full px-6 py-2 bg-yellow-600 text-white rounded hover:bg-yellow-700"
+              >
+                명예의 전당 🏆
+              </button>
+              <button
                 onClick={() => {
                   setSelectedWeekView(getCurrentWeek())
                   fetchExistingSlots(getCurrentWeek())

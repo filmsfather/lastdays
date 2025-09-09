@@ -112,7 +112,13 @@ export default function SessionFeedbackPage({
           return
         }
 
-        const feedbackResponse = await fetch(`/api/sessions/${sessionId}/feedback-data`)
+        // URL에서 hallOfFame 파라미터 확인
+        const urlParams = new URLSearchParams(window.location.search)
+        const isHallOfFameMode = urlParams.get('hallOfFame') === 'true'
+        
+        // API 요청 시 hallOfFame 파라미터 전달
+        const apiUrl = `/api/sessions/${sessionId}/feedback-data${isHallOfFameMode ? '?hallOfFame=true' : ''}`
+        const feedbackResponse = await fetch(apiUrl)
         if (!feedbackResponse.ok) {
           if (feedbackResponse.status === 401) {
             router.push('/login')
@@ -207,10 +213,15 @@ export default function SessionFeedbackPage({
     return null
   }
 
+  // URL에서 hallOfFame 모드 확인
+  const searchParams = new URLSearchParams(typeof window !== 'undefined' ? window.location.search : '')
+  const isHallOfFameMode = searchParams.get('hallOfFame') === 'true'
+
   return (
     <FeedbackPageClient 
       sessionData={sessionData}
       currentUser={currentUser}
+      isHallOfFameMode={isHallOfFameMode}
     />
   )
 }

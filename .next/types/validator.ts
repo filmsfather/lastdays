@@ -95,6 +95,12 @@ type RouteHandlerConfig<Route extends AppRouteHandlerRoutes = AppRouteHandlerRou
   handler satisfies AppPageConfig<"/dashboard/teacher/today">
 }
 
+// Validate ../../src/app/hall-of-fame/page.tsx
+{
+  const handler = {} as typeof import("../../src/app/hall-of-fame/page.js")
+  handler satisfies AppPageConfig<"/hall-of-fame">
+}
+
 // Validate ../../src/app/login/page.tsx
 {
   const handler = {} as typeof import("../../src/app/login/page.js")
@@ -201,6 +207,12 @@ type RouteHandlerConfig<Route extends AppRouteHandlerRoutes = AppRouteHandlerRou
 {
   const handler = {} as typeof import("../../src/app/api/change-pin/route.js")
   handler satisfies RouteHandlerConfig<"/api/change-pin">
+}
+
+// Validate ../../src/app/api/hall-of-fame/route.ts
+{
+  const handler = {} as typeof import("../../src/app/api/hall-of-fame/route.js")
+  handler satisfies RouteHandlerConfig<"/api/hall-of-fame">
 }
 
 // Validate ../../src/app/api/me/tickets/route.ts

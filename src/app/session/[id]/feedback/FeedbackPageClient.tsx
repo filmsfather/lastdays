@@ -5,6 +5,7 @@ import { toast } from 'react-hot-toast'
 import Link from 'next/link'
 
 interface FeedbackPageProps {
+  isHallOfFameMode?: boolean
   sessionData: {
     sessionId: number
     status: string
@@ -91,7 +92,7 @@ const getScoreColor = (score: string) => {
   return 'text-gray-600'
 }
 
-export default function FeedbackPageClient({ sessionData: initialSessionData, currentUser }: FeedbackPageProps) {
+export default function FeedbackPageClient({ sessionData: initialSessionData, currentUser, isHallOfFameMode = false }: FeedbackPageProps) {
   const [sessionData, setSessionData] = useState(initialSessionData)
   const [scores, setScores] = useState(initialSessionData.scores || {
     practical_skills: '',
@@ -118,8 +119,15 @@ export default function FeedbackPageClient({ sessionData: initialSessionData, cu
   const isStudent = currentUser.role === 'student'
   const isAdmin = currentUser.role === 'admin'
 
+  // 편집 권한 확인 (명예의 전당 모드에서는 읽기 전용)
+  const canEditScores = !isHallOfFameMode && isTeacher
+  const canEditFeedback = !isHallOfFameMode && isTeacher
+  const canEditChecklist = !isHallOfFameMode && (isTeacher || isStudent)
+  const canEditReflection = !isHallOfFameMode && isStudent
+
   // 사용자 역할에 따른 대시보드 경로
   const getDashboardPath = () => {
+    if (isHallOfFameMode) return '/hall-of-fame'
     if (isStudent) return '/dashboard/student/history'
     if (isTeacher) return '/dashboard/teacher'
     if (isAdmin) return '/dashboard/admin'
@@ -348,17 +356,31 @@ export default function FeedbackPageClient({ sessionData: initialSessionData, cu
         <div className="bg-white rounded-lg shadow-md p-6 mb-6">
           <div className="flex justify-between items-start">
             <div>
-              <h1 className="text-2xl font-bold text-gray-800">학습 피드백</h1>
+              <h1 className="text-2xl font-bold text-gray-800 flex items-center">
+                {isHallOfFameMode && (
+                  <div className="w-8 h-8 bg-yellow-100 rounded-lg flex items-center justify-center mr-3">
+                    <svg className="w-5 h-5 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+                    </svg>
+                  </div>
+                )}
+                학습 피드백 {isHallOfFameMode && '🏆'}
+              </h1>
               <p className="text-gray-600">
                 {formatDate(sessionData.slot.date)} {getSessionPeriodTime(sessionData.slot.session_period)} | 
                 {sessionData.teacher.name} 선생님
+                {isHallOfFameMode && (
+                  <span className="ml-3 px-2 py-1 bg-yellow-100 text-yellow-800 text-xs rounded-full">
+                    명예의 전당
+                  </span>
+                )}
               </p>
             </div>
             <Link 
               href={getDashboardPath()}
               className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors"
             >
-              목록으로
+              {isHallOfFameMode ? '명예의 전당으로' : '목록으로'}
             </Link>
           </div>
         </div>
@@ -466,7 +488,7 @@ export default function FeedbackPageClient({ sessionData: initialSessionData, cu
                   </div>
                 </div>
               </div>
-            ) : isTeacher ? (
+            ) : canEditScores ? (
               <div className="space-y-4">
                 <p className="text-gray-500 mb-4">점수를 입력해주세요.</p>
                 <div className="grid grid-cols-2 gap-4">
@@ -549,7 +571,7 @@ export default function FeedbackPageClient({ sessionData: initialSessionData, cu
             {sessionData.teacherFeedback.length === 0 ? (
               <div>
                 <p className="text-gray-500 mb-4">아직 피드백이 등록되지 않았습니다.</p>
-                {isTeacher && (
+                {canEditFeedback && (
                   <div className="space-y-4">
                     <textarea
                       value={feedbackContent}
@@ -583,7 +605,7 @@ export default function FeedbackPageClient({ sessionData: initialSessionData, cu
                     </p>
                   </div>
                 ))}
-                {isTeacher && (
+                {canEditFeedback && (
                   <div className="space-y-4 border-t pt-4">
                     <textarea
                       value={feedbackContent}
@@ -609,7 +631,7 @@ export default function FeedbackPageClient({ sessionData: initialSessionData, cu
             {sessionData.checklistItems.length === 0 ? (
               <div>
                 <p className="text-gray-500 mb-4">체크리스트 항목이 없습니다.</p>
-                {isTeacher && (
+                {canEditChecklist && isTeacher && (
                   <div className="space-y-4">
                     <input
                       type="text"
@@ -641,17 +663,17 @@ export default function FeedbackPageClient({ sessionData: initialSessionData, cu
                       )}
                     </div>
                     <button
-                      onClick={() => isStudent && handleChecklistToggle(item.id, item.is_checked)}
+                      onClick={() => canEditChecklist && isStudent && handleChecklistToggle(item.id, item.is_checked)}
                       className={`flex-1 text-left ${item.is_checked ? 'text-gray-500 line-through' : 'text-gray-900'} ${
-                        isStudent ? 'hover:bg-gray-50 p-2 rounded' : ''
+                        canEditChecklist && isStudent ? 'hover:bg-gray-50 p-2 rounded' : ''
                       }`}
-                      disabled={!isStudent}
+                      disabled={!canEditChecklist || !isStudent}
                     >
                       {item.item_text}
                     </button>
                   </div>
                 ))}
-                {isTeacher && (
+                {canEditChecklist && isTeacher && (
                   <div className="space-y-4 border-t pt-4">
                     <input
                       type="text"
@@ -675,7 +697,7 @@ export default function FeedbackPageClient({ sessionData: initialSessionData, cu
           {/* 학생 복기 */}
           <div className="bg-white rounded-lg shadow-md p-6 lg:col-span-2">
             <h2 className="text-xl font-bold text-gray-800 mb-4">학생 복기</h2>
-            {isStudent ? (
+            {canEditReflection ? (
               sessionData.studentReflection?.text ? (
                 <div className="space-y-4">
                   {/* 저장된 복기 표시 */}

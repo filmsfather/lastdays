@@ -11,6 +11,10 @@ export async function GET(
     const resolvedParams = await params
     const sessionId = parseInt(resolvedParams.id)
     
+    // 명예의 전당 모드 확인
+    const { searchParams } = new URL(request.url)
+    const isHallOfFameMode = searchParams.get('hallOfFame') === 'true'
+    
     if (isNaN(sessionId)) {
       return NextResponse.json(
         { error: '올바른 세션 ID가 아닙니다.' },
@@ -108,12 +112,12 @@ export async function GET(
       )
     }
 
-    // 권한 확인: 학생 본인, 교사, 또는 관리자만 조회 가능
+    // 권한 확인: 학생 본인, 교사, 관리자 또는 명예의 전당 모드에서 조회 가능
     const isStudent = currentUser.role === 'student' && reservation.student_id === currentUser.id
     const isTeacher = currentUser.role === 'teacher' // 모든 교사가 접근 가능하도록 변경
     const isAdmin = currentUser.role === 'admin'
 
-    if (!isStudent && !isTeacher && !isAdmin) {
+    if (!isStudent && !isTeacher && !isAdmin && !isHallOfFameMode) {
       return NextResponse.json(
         { error: '이 세션에 접근할 권한이 없습니다.' },
         { status: 403 }

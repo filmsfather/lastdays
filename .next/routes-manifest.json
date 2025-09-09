@@ -221,6 +221,12 @@
       "namedRegex": "^/dashboard/teacher/today(?:/)?$"
     },
     {
+      "page": "/hall-of-fame",
+      "regex": "^/hall\\-of\\-fame(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/hall\\-of\\-fame(?:/)?$"
+    },
+    {
       "page": "/login",
       "regex": "^/login(?:/)?$",
       "routeKeys": {},
