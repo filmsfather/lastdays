@@ -99,6 +99,7 @@ export default function StudentDashboard() {
   const [currentPin, setCurrentPin] = useState('')
   const [newPin, setNewPin] = useState('')
   const [pinChangeLoading, setPinChangeLoading] = useState(false)
+  const [showDatePicker, setShowDatePicker] = useState(false)
 
   // 현재 사용자 정보 조회
   useEffect(() => {
@@ -509,6 +510,12 @@ export default function StudentDashboard() {
     setCurrentWeekStart(getWeekStart(new Date()))
   }
 
+  const goToSpecificDate = (date: Date) => {
+    const weekStart = getWeekStart(date)
+    setCurrentWeekStart(weekStart)
+    setShowDatePicker(false)
+  }
+
   // 날짜별 슬롯 그룹핑 (한국 시간 기준)
   const getSlotsByDate = (date: Date) => {
     const dateString = formatDateString(date)
@@ -911,15 +918,18 @@ export default function StudentDashboard() {
                             </span>
                           )}
                         </div>
-                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
-                          isToday ? 'bg-blue-200' : 'bg-gray-100'
-                        }`}>
+                        <button
+                          onClick={() => setShowDatePicker(true)}
+                          className={`w-12 h-12 rounded-xl flex items-center justify-center transition-colors hover:scale-105 ${
+                            isToday ? 'bg-blue-200 hover:bg-blue-300' : 'bg-gray-100 hover:bg-gray-200'
+                          }`}
+                        >
                           <svg className={`w-6 h-6 ${isToday ? 'text-blue-600' : 'text-gray-400'}`} 
                                fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
                                   d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 002 2z" />
                           </svg>
-                        </div>
+                        </button>
                       </div>
                     </div>
 
@@ -1308,6 +1318,111 @@ export default function StudentDashboard() {
                     'PIN 변경'
                   )}
                 </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* 날짜 선택 모달 */}
+        {showDatePicker && (
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 px-4">
+            <div className="bg-white rounded-3xl p-6 w-full max-w-sm shadow-2xl animate-slide-up">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-xl font-bold text-gray-900">날짜 선택</h3>
+                <button
+                  onClick={() => setShowDatePicker(false)}
+                  className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center hover:bg-gray-200 transition-colors"
+                >
+                  <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              <div className="space-y-3">
+                {/* 빠른 날짜 선택 */}
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    onClick={() => goToSpecificDate(new Date())}
+                    className="p-3 bg-blue-50 border border-blue-200 rounded-xl text-blue-700 font-medium hover:bg-blue-100 transition-colors"
+                  >
+                    오늘
+                  </button>
+                  <button
+                    onClick={() => {
+                      const tomorrow = new Date()
+                      tomorrow.setDate(tomorrow.getDate() + 1)
+                      goToSpecificDate(tomorrow)
+                    }}
+                    className="p-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-700 font-medium hover:bg-gray-100 transition-colors"
+                  >
+                    내일
+                  </button>
+                </div>
+
+                {/* 주간 선택 */}
+                <div className="space-y-2">
+                  <h4 className="text-sm font-semibold text-gray-700 mb-2">주간 이동</h4>
+                  <div className="grid grid-cols-1 gap-2">
+                    <button
+                      onClick={() => {
+                        const lastWeek = new Date()
+                        lastWeek.setDate(lastWeek.getDate() - 7)
+                        goToSpecificDate(lastWeek)
+                      }}
+                      className="p-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-700 font-medium hover:bg-gray-100 transition-colors text-left"
+                    >
+                      지난 주
+                    </button>
+                    <button
+                      onClick={() => goToSpecificDate(new Date())}
+                      className="p-3 bg-blue-50 border border-blue-200 rounded-xl text-blue-700 font-medium hover:bg-blue-100 transition-colors text-left"
+                    >
+                      이번 주
+                    </button>
+                    <button
+                      onClick={() => {
+                        const nextWeek = new Date()
+                        nextWeek.setDate(nextWeek.getDate() + 7)
+                        goToSpecificDate(nextWeek)
+                      }}
+                      className="p-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-700 font-medium hover:bg-gray-100 transition-colors text-left"
+                    >
+                      다음 주
+                    </button>
+                  </div>
+                </div>
+
+                {/* 현재 주의 날짜들 */}
+                <div className="space-y-2">
+                  <h4 className="text-sm font-semibold text-gray-700 mb-2">이번 주 날짜</h4>
+                  <div className="grid grid-cols-7 gap-1">
+                    {getWeekDates(currentWeekStart).map((date, index) => {
+                      const isToday = formatDateString(date) === getKoreanDate()
+                      const dayOfWeek = ['일', '월', '화', '수', '목', '금', '토'][date.getDay()]
+                      const daySlots = getSlotsByDate(date)
+                      const hasSlots = daySlots.length > 0
+                      
+                      return (
+                        <button
+                          key={index}
+                          onClick={() => goToSpecificDate(date)}
+                          className={`p-2 rounded-lg text-center text-xs transition-colors ${
+                            isToday 
+                              ? 'bg-blue-200 text-blue-800 font-bold' 
+                              : hasSlots 
+                                ? 'bg-green-50 text-green-700 hover:bg-green-100' 
+                                : 'bg-gray-50 text-gray-500 hover:bg-gray-100'
+                          }`}
+                        >
+                          <div className="font-medium">{dayOfWeek}</div>
+                          <div>{date.getDate()}</div>
+                          {hasSlots && <div className="w-1 h-1 bg-green-500 rounded-full mx-auto mt-1"></div>}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
               </div>
             </div>
           </div>
