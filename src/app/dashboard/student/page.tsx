@@ -635,6 +635,44 @@ export default function StudentDashboard() {
           </p>
         </div>
 
+        {/* 명예의 전당 */}
+        <div className="card animate-slide-up mb-6">
+          <div className="bg-gradient-to-br from-yellow-50 to-amber-50 border border-yellow-200 rounded-2xl p-6">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center">
+                <div className="w-12 h-12 bg-yellow-100 rounded-xl flex items-center justify-center mr-4">
+                  <svg className="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold text-yellow-800 flex items-center">
+                    명예의 전당 🏆
+                  </h3>
+                  <p className="text-yellow-600 text-sm">우수한 성과를 거둔 학습 세션들을 확인해보세요</p>
+                </div>
+              </div>
+              <div className="flex items-center space-x-1">
+                <span className="text-2xl">🥇</span>
+                <span className="text-xl">✨</span>
+              </div>
+            </div>
+            
+            <Link 
+              href="/hall-of-fame"
+              className="inline-flex items-center justify-center w-full py-3 px-4 bg-gradient-to-r from-yellow-500 to-amber-500 text-white font-semibold rounded-xl hover:from-yellow-600 hover:to-amber-600 transition-all duration-200 shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
+            >
+              <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+              </svg>
+              명예의 전당 둘러보기
+              <svg className="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+              </svg>
+            </Link>
+          </div>
+        </div>
+
         {/* 통합 예약 캘린더 */}
         <div className="card animate-slide-up">
           <div className="flex items-center justify-between mb-6">
