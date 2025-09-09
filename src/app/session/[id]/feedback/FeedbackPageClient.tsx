@@ -103,12 +103,12 @@ export default function FeedbackPageClient({ sessionData: initialSessionData, cu
   const [feedbackContent, setFeedbackContent] = useState('')
   const [reflectionText, setReflectionText] = useState('')
   const [newChecklistItem, setNewChecklistItem] = useState('')
-  const [currentTime, setCurrentTime] = useState(new Date())
+  const [currentTime, setCurrentTime] = useState(new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Seoul' })))
 
   // 실시간 시간 업데이트
   useEffect(() => {
     const timer = setInterval(() => {
-      setCurrentTime(new Date())
+      setCurrentTime(new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Seoul' })))
     }, 1000)
     
     return () => clearInterval(timer)

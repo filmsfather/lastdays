@@ -75,7 +75,7 @@ export async function GET() {
     }
 
     // 2.5단계: 만료된 세션들을 자동으로 completed로 업데이트
-    const now = new Date()
+    const now = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Seoul' }))
     const expiredSessionIds: number[] = []
     
     for (const session of sessions) {
@@ -121,7 +121,8 @@ export async function GET() {
           
           // 스케줄링 계산
           const blockStart = (reservation.slot as any).session_period === 'AM' ? 10 : 16
-          const scheduledStartAt = new Date((reservation.slot as any).date)
+          const slotDate = (reservation.slot as any).date
+          const scheduledStartAt = new Date(slotDate + 'T00:00:00+09:00') // 한국 시간대로 명시적 설정
           scheduledStartAt.setHours(blockStart, 0, 0, 0)
           scheduledStartAt.setMinutes(scheduledStartAt.getMinutes() + (queuePosition - 1) * 10)
           

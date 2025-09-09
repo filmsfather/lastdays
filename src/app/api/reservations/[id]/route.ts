@@ -154,8 +154,8 @@ export async function PATCH(
     }
 
     // 전날까지만 수정 가능 확인
-    const reservationDate = new Date(existingReservation.slot.date + 'T00:00:00Z')
-    const currentDate = new Date()
+    const reservationDate = new Date(existingReservation.slot.date + 'T00:00:00+09:00')
+    const currentDate = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Seoul' }))
     
     // 현재 시간이 예약 날짜의 전날 23:59를 지났는지 확인
     const dayBeforeReservation = new Date(reservationDate)

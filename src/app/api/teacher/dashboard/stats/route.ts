@@ -57,8 +57,7 @@ export async function GET() {
     }
 
     // 오늘 날짜 (KST)
-    const today = new Date()
-    today.setHours(today.getHours() + 9) // UTC to KST
+    const today = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Seoul' }))
     const todayString = today.toISOString().split('T')[0]
 
     // 병렬로 모든 통계 조회
