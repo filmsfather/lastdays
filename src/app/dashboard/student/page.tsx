@@ -542,7 +542,7 @@ export default function StudentDashboard() {
   }
 
   return (
-    <div className="min-h-screen gradient-bg" style={{ colorScheme: 'light' }}>
+    <div className="min-h-screen gradient-bg">
       {/* Navigation */}
       <nav className="bg-white/80 backdrop-blur-sm border-b border-white/20 sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-4 lg:px-6 py-4">
