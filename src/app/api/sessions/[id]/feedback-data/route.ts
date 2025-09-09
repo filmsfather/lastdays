@@ -108,9 +108,9 @@ export async function GET(
       )
     }
 
-    // 권한 확인: 학생 본인, 담당 교사, 또는 관리자만 조회 가능
+    // 권한 확인: 학생 본인, 교사, 또는 관리자만 조회 가능
     const isStudent = currentUser.role === 'student' && reservation.student_id === currentUser.id
-    const isTeacher = currentUser.role === 'teacher' && (reservation.slot as any).teacher.id === currentUser.id
+    const isTeacher = currentUser.role === 'teacher' // 모든 교사가 접근 가능하도록 변경
     const isAdmin = currentUser.role === 'admin'
 
     if (!isStudent && !isTeacher && !isAdmin) {

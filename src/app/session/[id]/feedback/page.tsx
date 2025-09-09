@@ -118,10 +118,20 @@ export default function SessionFeedbackPage({
             router.push('/login')
             return
           } else if (feedbackResponse.status === 403) {
-            router.push('/dashboard/student/history')
+            // 권한 오류 시 사용자 역할에 따라 적절한 페이지로 리다이렉트
+            if (authData.user.role === 'teacher') {
+              router.push('/dashboard/teacher/students')
+            } else {
+              router.push('/dashboard/student/history')
+            }
             return
           } else if (feedbackResponse.status === 404) {
-            router.push('/dashboard/student/history')
+            // 세션을 찾을 수 없는 경우도 동일하게 처리
+            if (authData.user.role === 'teacher') {
+              router.push('/dashboard/teacher/students')
+            } else {
+              router.push('/dashboard/student/history')
+            }
             return
           }
           
@@ -177,10 +187,16 @@ export default function SessionFeedbackPage({
             다시 시도
           </button>
           <button 
-            onClick={() => router.push('/dashboard/student/history')}
+            onClick={() => {
+              if (currentUser?.role === 'teacher') {
+                router.push('/dashboard/teacher/students')
+              } else {
+                router.push('/dashboard/student/history')
+              }
+            }}
             className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors"
           >
-            히스토리로 돌아가기
+            {currentUser?.role === 'teacher' ? '학생 목록으로' : '히스토리로 돌아가기'}
           </button>
         </div>
       </div>
