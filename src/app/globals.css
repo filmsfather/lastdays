@@ -30,6 +30,7 @@
   --accent-foreground: #18181b;
 }
 
+/* Dark mode disabled - always use light mode for better mobile visibility
 @media (prefers-color-scheme: dark) {
   :root {
     --background: #09090b;
@@ -48,6 +49,7 @@
     --accent-foreground: #fafafa;
   }
 }
+*/
 
 * {
   border-color: var(--border);
@@ -62,6 +64,35 @@ body {
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  
+  /* Force light mode for better mobile visibility */
+  color-scheme: light;
+  -webkit-color-scheme: light;
+}
+
+/* Ensure text is visible on mobile devices */
+@media (max-width: 1024px) {
+  body, * {
+    color: #1a1a1a !important;
+    background-color: #fafafa !important;
+  }
+  
+  /* Override any dark text that might be too light */
+  .text-white {
+    color: #ffffff !important;
+  }
+  
+  .text-gray-900, .text-gray-800, .text-gray-700 {
+    color: #1a1a1a !important;
+  }
+  
+  .text-gray-600, .text-gray-500 {
+    color: #4a4a4a !important;
+  }
+  
+  .bg-white {
+    background-color: #ffffff !important;
+  }
 }
 
 @layer components {
