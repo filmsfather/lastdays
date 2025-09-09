@@ -109,6 +109,14 @@ export default async function StudentHistoryPage({ searchParams }: Props) {
   }
 
   // 학생의 완료된 세션 히스토리 조회 (최신 50건)
+  // 먼저 해당 학생의 예약 ID들을 가져온 후 세션을 조회
+  const { data: reservations } = await supabase
+    .from('reservations')
+    .select('id')
+    .eq('student_id', targetStudentId)
+
+  const reservationIds = reservations?.map(r => r.id) || []
+
   const { data: sessions, error } = await supabase
     .from('sessions')
     .select(`
@@ -135,7 +143,7 @@ export default async function StudentHistoryPage({ searchParams }: Props) {
         attitude
       )
     `)
-    .eq('reservation.student_id', targetStudentId)
+    .in('reservation_id', reservationIds)
     .eq('status', 'completed')
     .order('completed_at', { ascending: false })
     .limit(50)
