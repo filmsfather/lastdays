@@ -55,17 +55,94 @@ export default async function HallOfFamePage() {
     redirect('/login')
   }
 
-  // 명예의 전당 데이터 조회
-  const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/hall-of-fame`, {
-    cache: 'no-store'
-  })
-
+  // 명예의 전당 데이터 조회 (서버사이드에서 직접)
   let hallOfFameData: HallOfFameSession[] = []
-  if (response.ok) {
-    const result = await response.json()
-    if (result.success) {
-      hallOfFameData = result.data
+  
+  try {
+    // 우수한 점수를 받은 완료된 세션들 조회
+    const { data: sessions, error } = await supabase
+      .from('sessions')
+      .select(`
+        id,
+        status,
+        completed_at,
+        scores (
+          practical_skills,
+          major_knowledge,
+          major_suitability,
+          attitude
+        ),
+        reservation:reservation_id (
+          student:student_id (
+            name,
+            class_name
+          ),
+          slot:slot_id (
+            date,
+            session_period,
+            teacher:teacher_id (
+              name,
+              class_name
+            )
+          )
+        ),
+        problem:problem_id (
+          title,
+          limit_minutes
+        )
+      `)
+      .eq('status', 'completed')
+      .not('scores', 'is', null) // 점수가 있는 세션만
+      .order('completed_at', { ascending: false })
+      .limit(100) // 최대 100건
+
+    if (!error && sessions) {
+      // 우수한 점수만 필터링
+      const excellentSessions = sessions.filter(session => {
+        const scores = Array.isArray(session.scores) ? session.scores[0] : session.scores
+        if (!scores) return false
+
+        const scoreValues = [
+          scores.practical_skills,
+          scores.major_knowledge,
+          scores.major_suitability,
+          scores.attitude
+        ]
+
+        // 모든 점수가 '상' 또는 최대 1개만 '중상'인 경우
+        const 상Count = scoreValues.filter(s => s === '상').length
+        const 중상Count = scoreValues.filter(s => s === '중상').length
+
+        return 상Count >= 3 && (상Count === 4 || 중상Count === 1)
+      })
+
+      // 응답 데이터 구성
+      hallOfFameData = excellentSessions.map(session => {
+        const scores = Array.isArray(session.scores) ? session.scores[0] : session.scores
+        const problem = Array.isArray(session.problem) ? session.problem[0] : session.problem
+        return {
+          id: session.id,
+          date: (session.reservation as any).slot.date,
+          sessionPeriod: (session.reservation as any).slot.session_period,
+          studentName: (session.reservation as any).student.name,
+          studentClass: (session.reservation as any).student.class_name,
+          teacherName: (session.reservation as any).slot.teacher.name,
+          teacherClass: (session.reservation as any).slot.teacher.class_name,
+          problemTitle: problem?.title || '문제 정보 없음',
+          limitMinutes: problem?.limit_minutes || 0,
+          completedAt: session.completed_at,
+          scores: {
+            practical_skills: scores?.practical_skills || '',
+            major_knowledge: scores?.major_knowledge || '',
+            major_suitability: scores?.major_suitability || '',
+            attitude: scores?.attitude || ''
+          }
+        }
+      })
     }
+  } catch (error) {
+    console.error('Hall of Fame data fetch error:', error)
+    hallOfFameData = []
   }
 
   // 사용자 역할에 따른 대시보드 경로
