@@ -75,7 +75,16 @@ export async function GET() {
     }
 
     // 2.5단계: 만료된 세션들을 자동으로 completed로 업데이트
-    const now = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Seoul' }))
+    // 한국 시간으로 현재 시간을 정확하게 계산 (Intl API 사용)
+    const now = new Date(new Intl.DateTimeFormat('sv-SE', {
+      timeZone: 'Asia/Seoul',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit'
+    }).format(new Date()).replace(' ', 'T') + '+09:00')
     const expiredSessionIds: number[] = []
     
     for (const session of sessions) {
@@ -119,17 +128,16 @@ export async function GET() {
 
           const queuePosition = (queueData?.findIndex(r => r.id === session.reservation_id) ?? -1) + 1 || 1
           
-          // 스케줄링 계산
-          const blockStart = (reservation.slot as any).session_period === 'AM' ? 10 : 16
+          // 스케줄링 계산 - time_slot 필드를 직접 사용
           const slotDate = (reservation.slot as any).date
-          const scheduledStartAt = new Date(slotDate + 'T00:00:00+09:00') // 한국 시간대로 명시적 설정
-          scheduledStartAt.setHours(blockStart, 0, 0, 0)
-          scheduledStartAt.setMinutes(scheduledStartAt.getMinutes() + (queuePosition - 1) * 10)
+          const timeSlot = (reservation.slot as any).time_slot // 예: "17:00:00"
+          const scheduledStartAt = new Date(slotDate + 'T' + timeSlot + '+09:00')
           
           // 면접 시간은 고정 10분으로 설정
           const INTERVIEW_DURATION_MINUTES = 10
           const sessionEndTime = new Date(scheduledStartAt.getTime() + INTERVIEW_DURATION_MINUTES * 60000)
           
+          // 면접 종료 시간이 지나면 자동 완료 처리
           if (now >= sessionEndTime) {
             expiredSessionIds.push(session.id)
           }

@@ -157,19 +157,15 @@ export async function GET(
     }
 
     // 5단계: 스케줄링 계산
-    const blockStart = (reservation.slot as any).session_period === 'AM' ? 10 : 16 // 10:00 AM or 4:00 PM
-    // 한국 시간대 기준으로 예약 시작 시간 설정
+    // 예약 시작 시간 설정 - time_slot 필드를 직접 사용
     const slotDate = (reservation.slot as any).date
-    const scheduledStartAt = new Date(slotDate + 'T00:00:00+09:00') // 한국 시간대로 명시적 설정
-    scheduledStartAt.setHours(blockStart, 0, 0, 0)
-    scheduledStartAt.setMinutes(scheduledStartAt.getMinutes() + (queuePosition - 1) * 10)
+    const timeSlot = (reservation.slot as any).time_slot // 예: "17:00:00"
+    const scheduledStartAt = new Date(slotDate + 'T' + timeSlot + '+09:00')
     
     // 디버그 로그
     console.log('=== 시간 계산 디버그 ===')
     console.log('slotDate:', slotDate)
-    console.log('session_period:', (reservation.slot as any).session_period)
-    console.log('blockStart:', blockStart)
-    console.log('queuePosition:', queuePosition)
+    console.log('timeSlot:', timeSlot)
     console.log('scheduledStartAt:', scheduledStartAt.toISOString())
     
     // 한국 시간대 기준으로 현재 시간 가져오기
