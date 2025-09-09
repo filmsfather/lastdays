@@ -61,11 +61,51 @@ const getScoreColor = (scoreResult: string) => {
   return 'text-blue-600 font-semibold'
 }
 
-export default async function StudentHistoryPage() {
+interface Props {
+  searchParams: Promise<{
+    studentId?: string
+  }>
+}
+
+export default async function StudentHistoryPage({ searchParams }: Props) {
+  // URL 파라미터에서 studentId 추출
+  const resolvedParams = await searchParams
+  const studentId = resolvedParams?.studentId
+
   // 사용자 인증 확인
   const currentUser = await getCurrentUser()
-  if (!currentUser || currentUser.role !== 'student') {
+  if (!currentUser) {
     redirect('/login')
+  }
+
+  // 권한 확인: 학생 본인이거나, 교사가 특정 학생을 조회하는 경우
+  const targetStudentId = studentId ? parseInt(studentId) : currentUser.id
+  const isOwnHistory = currentUser.id === targetStudentId
+  const isTeacherViewing = currentUser.role === 'teacher' && studentId
+
+  if (!isOwnHistory && !isTeacherViewing) {
+    redirect('/login')
+  }
+
+  // 대상 학생 정보 조회 (교사가 다른 학생을 조회하는 경우)
+  let targetStudent = currentUser
+  if (isTeacherViewing) {
+    const { data: studentData, error: studentError } = await supabase
+      .from('accounts')
+      .select('id, name, class_name')
+      .eq('id', targetStudentId)
+      .eq('role', 'student')
+      .single()
+
+    if (studentError || !studentData) {
+      redirect('/dashboard/teacher/students')
+    }
+    targetStudent = {
+      id: studentData.id,
+      name: studentData.name,
+      className: studentData.class_name,
+      role: 'student'
+    }
   }
 
   // 학생의 완료된 세션 히스토리 조회 (최신 50건)
@@ -95,7 +135,7 @@ export default async function StudentHistoryPage() {
         attitude
       )
     `)
-    .eq('reservation.student_id', currentUser.id)
+    .eq('reservation.student_id', targetStudentId)
     .eq('status', 'completed')
     .order('completed_at', { ascending: false })
     .limit(50)
@@ -139,14 +179,24 @@ export default async function StudentHistoryPage() {
         <div className="bg-white rounded-lg shadow-md p-6 mb-6">
           <div className="flex justify-between items-center">
             <div>
-              <h1 className="text-2xl font-bold text-gray-800">학습 히스토리</h1>
-              <p className="text-gray-600">{currentUser.name}님의 최근 50건 학습 기록</p>
+              <h1 className="text-2xl font-bold text-gray-800">
+                학습 히스토리
+                {isTeacherViewing && (
+                  <span className="text-lg font-normal text-gray-600 ml-2">
+                    - {targetStudent.name} 학생
+                  </span>
+                )}
+              </h1>
+              <p className="text-gray-600">
+                {targetStudent.name}님의 최근 50건 학습 기록
+                {isTeacherViewing && ` (${targetStudent.className})`}
+              </p>
             </div>
             <Link 
-              href="/dashboard/student"
+              href={isTeacherViewing ? "/dashboard/teacher/students" : "/dashboard/student"}
               className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
             >
-              대시보드로 돌아가기
+              {isTeacherViewing ? "학생 목록으로" : "대시보드로 돌아가기"}
             </Link>
           </div>
         </div>

@@ -1061,7 +1061,7 @@ export default function StudentDashboard() {
             </div>
           </div>
 
-          {sessions.length === 0 ? (
+          {sessions.filter(session => session.status !== 'completed').length === 0 ? (
             <div className="text-center py-12">
               <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
                 <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1073,7 +1073,7 @@ export default function StudentDashboard() {
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {sessions.map((session) => (
+              {sessions.filter(session => session.status !== 'completed').map((session) => (
                 <div
                   key={session.id}
                   className={`p-4 lg:p-5 rounded-2xl border-2 transition-all duration-200 hover:shadow-lg ${

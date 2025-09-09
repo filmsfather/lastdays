@@ -191,6 +191,26 @@ export async function GET(
     if (now >= sessionEndTime) {
       timeStatus = 'session_closed'
       canShowProblem = true // 세션 종료 후에도 문제는 볼 수 있음
+
+      // 세션이 종료되었는데 아직 completed 상태가 아니라면 자동으로 업데이트
+      if (session.status !== 'completed') {
+        console.log('Auto-completing session:', sessionId)
+        const { error: updateError } = await supabase
+          .from('sessions')
+          .update({
+            status: 'completed',
+            completed_at: sessionEndTime.toISOString()
+          })
+          .eq('id', sessionId)
+        
+        if (updateError) {
+          console.error('Failed to auto-complete session:', updateError)
+        } else {
+          // 업데이트된 세션 정보를 반영
+          session.status = 'completed'
+          session.completed_at = sessionEndTime.toISOString()
+        }
+      }
     } else if (now < previewStartTime) {
       timeStatus = 'before_preview'
       canShowProblem = false
