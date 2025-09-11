@@ -100,6 +100,7 @@ export default function StudentDashboard() {
   const [newPin, setNewPin] = useState('')
   const [pinChangeLoading, setPinChangeLoading] = useState(false)
   const [showDatePicker, setShowDatePicker] = useState(false)
+  const [selectedDayFilter, setSelectedDayFilter] = useState<number | null>(null) // 0=일요일, 1=월요일, ..., 6=토요일
 
   // 현재 사용자 정보 조회
   useEffect(() => {
@@ -928,6 +929,27 @@ export default function StudentDashboard() {
 
           {/* 모바일/태블릿: 날짜별 리스트 뷰 */}
           <div className="lg:hidden">
+            {/* 요일 필터 드롭다운 */}
+            <div className="mb-4 p-4 bg-gradient-to-r from-gray-50 to-blue-50 rounded-xl border border-gray-200">
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                요일별 보기
+              </label>
+              <select
+                value={selectedDayFilter ?? ''}
+                onChange={(e) => setSelectedDayFilter(e.target.value === '' ? null : parseInt(e.target.value))}
+                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all bg-white text-gray-700 font-medium"
+              >
+                <option value="">전체 요일 보기</option>
+                <option value="1">월요일</option>
+                <option value="2">화요일</option>
+                <option value="3">수요일</option>
+                <option value="4">목요일</option>
+                <option value="5">금요일</option>
+                <option value="6">토요일</option>
+                <option value="0">일요일</option>
+              </select>
+            </div>
+
             <div className="space-y-4 max-h-[70vh] overflow-y-auto">
               {getWeekDates(currentWeekStart).map((date, index) => {
                 const daySlots = getSlotsByDate(date)
@@ -936,6 +958,11 @@ export default function StudentDashboard() {
                 const todayKST = getKoreanDate()
                 const isToday = dateString === todayKST
                 const isPast = dateString < todayKST
+                
+                // 요일 필터가 설정되어 있으면 해당 요일만 표시
+                if (selectedDayFilter !== null && date.getDay() !== selectedDayFilter) {
+                  return null
+                }
                 
                 // 빈 날짜는 건너뛰기 (예약도 없고 슬롯도 없으면)
                 if (daySlots.length === 0 && dayReservations.length === 0) {
