@@ -625,17 +625,19 @@ function AdminDashboard() {
                             <div className="space-y-2">
                               {Object.entries(slotsByTeacher).map(([teacherKey, teacherData]) => (
                                 <div key={teacherKey} className="border rounded-lg p-3 bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200">
-                                  <div className="flex justify-between items-center mb-2">
-                                    <div className="flex items-center">
-                                      <span className="w-2 h-2 bg-blue-500 rounded-full mr-2"></span>
-                                      <span className="font-semibold text-blue-900 text-sm truncate">
-                                        {(teacherData as any).teacherName}
-                                      </span>
-                                      <span className="text-xs text-blue-700 ml-1">
-                                        ({(teacherData as any).teacherClass})
-                                      </span>
+                                  <div className="flex justify-between items-start mb-2">
+                                    <div className="flex items-center flex-1 min-w-0 mr-2">
+                                      <span className="w-2 h-2 bg-blue-500 rounded-full mr-2 flex-shrink-0"></span>
+                                      <div className="min-w-0 flex-1">
+                                        <div className="font-semibold text-blue-900 text-sm">
+                                          {(teacherData as any).teacherName}
+                                        </div>
+                                        <div className="text-xs text-blue-700">
+                                          ({(teacherData as any).teacherClass})
+                                        </div>
+                                      </div>
                                     </div>
-                                    <span className={`px-2 py-1 rounded text-xs font-medium ${
+                                    <span className={`px-2 py-1 rounded text-xs font-medium flex-shrink-0 ${
                                       (teacherData as any).sessionPeriod === 'AM' 
                                         ? 'bg-orange-200 text-orange-800' 
                                         : 'bg-purple-200 text-purple-800'
