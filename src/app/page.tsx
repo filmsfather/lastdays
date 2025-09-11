@@ -1,23 +1,10 @@
 import Link from 'next/link'
 
 export default function Home() {
-  // 환경별 배너 표시
-  const isStaging = process.env.NEXT_PUBLIC_ENV === 'staging'
-  const isDevelopment = process.env.NEXT_PUBLIC_ENV === 'development' || process.env.NODE_ENV === 'development'
-
   return (
     <div className="min-h-screen gradient-bg">
-      {/* 환경별 배너 */}
-      {(isStaging || isDevelopment) && (
-        <div className={`fixed top-0 left-0 right-0 z-50 text-center py-2 text-white font-semibold text-sm ${
-          isStaging ? 'bg-orange-500' : 'bg-purple-500'
-        }`}>
-          {isStaging ? '🧪 스테이징 환경입니다' : '🔧 개발 환경입니다'}
-        </div>
-      )}
-      
       {/* Navigation */}
-      <nav className={`relative z-10 px-6 py-6 ${(isStaging || isDevelopment) ? 'pt-14' : ''}`}>
+      <nav className="relative z-10 px-6 py-6">
         <div className="max-w-7xl mx-auto flex justify-between items-center">
           <div className="flex items-center space-x-2">
             <div className="w-8 h-8 bg-blue-600 rounded-xl flex items-center justify-center">
