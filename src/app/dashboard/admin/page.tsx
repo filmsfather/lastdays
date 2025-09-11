@@ -568,28 +568,34 @@ function AdminDashboard() {
                   </div>
 
                   {/* 주간 캘린더 */}
-                  <div className="grid grid-cols-7 gap-3">
+                  <div className="grid grid-cols-7 gap-4">
                     {getWeekDates(currentWeekStart).map((date, index) => {
                       const dateString = date.toISOString().split('T')[0]
                       const daySlots = weeklySlots.filter(slot => slot.date === dateString)
                       const isToday = date.toDateString() === new Date().toDateString()
                       const isPast = date < new Date() && !isToday
                       
-                      // 슬롯을 교사별로 그룹핑하고 오전/오후로 분리
+                      // 슬롯을 교사별로 그룹핑하고 세션 타입으로 분리
                       const slotsByTeacher = daySlots.reduce((acc, slot) => {
                         const teacherKey = `${slot.teacher_name}|${slot.teacher_class}`
                         if (!acc[teacherKey]) {
                           acc[teacherKey] = {
                             teacherName: slot.teacher_name,
                             teacherClass: slot.teacher_class,
-                            amSlots: [],
-                            pmSlots: []
+                            sessionPeriod: slot.session_period,
+                            totalSlots: 0,
+                            breakSlots: [],
+                            availableSlots: 0,
+                            reservedSlots: 0
                           }
                         }
-                        if (slot.session_period === 'AM') {
-                          acc[teacherKey].amSlots.push(slot)
+                        acc[teacherKey].totalSlots++
+                        if (!slot.is_available) {
+                          acc[teacherKey].breakSlots.push(slot.time_slot)
+                        } else if (slot.current_reservations > 0) {
+                          acc[teacherKey].reservedSlots++
                         } else {
-                          acc[teacherKey].pmSlots.push(slot)
+                          acc[teacherKey].availableSlots++
                         }
                         return acc
                       }, {} as Record<string, any>)
@@ -597,7 +603,7 @@ function AdminDashboard() {
                       return (
                         <div
                           key={index}
-                          className={`min-h-80 p-3 border-2 rounded-xl ${
+                          className={`min-h-64 p-4 border-2 rounded-xl ${
                             isPast ? 'bg-gray-50 opacity-60' : 'bg-white'
                           } ${isToday ? 'border-blue-400 bg-blue-50 shadow-lg' : 'border-gray-200 hover:border-gray-300'} transition-all duration-200`}
                         >
@@ -611,85 +617,54 @@ function AdminDashboard() {
                           </div>
                           
                           {Object.keys(slotsByTeacher).length === 0 ? (
-                            <div className="text-center text-gray-400 py-8">
-                              <div className="text-3xl mb-2">📅</div>
+                            <div className="text-center text-gray-400 py-6">
+                              <div className="text-2xl mb-1">📅</div>
                               <div className="text-sm">수업 없음</div>
                             </div>
                           ) : (
-                            <div className="space-y-3">
+                            <div className="space-y-2">
                               {Object.entries(slotsByTeacher).map(([teacherKey, teacherData]) => (
-                                <div key={teacherKey} className="border rounded-lg p-2 bg-gradient-to-r from-indigo-50 to-purple-50 border-indigo-200">
-                                  <div className="text-sm font-semibold text-indigo-900 mb-2 flex items-center">
-                                    <span className="w-2 h-2 bg-indigo-500 rounded-full mr-2"></span>
-                                    <span className="truncate">{(teacherData as any).teacherName}</span>
-                                    <span className="text-xs text-indigo-700 ml-1">({(teacherData as any).teacherClass})</span>
+                                <div key={teacherKey} className="border rounded-lg p-3 bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200">
+                                  <div className="flex justify-between items-center mb-2">
+                                    <div className="flex items-center">
+                                      <span className="w-2 h-2 bg-blue-500 rounded-full mr-2"></span>
+                                      <span className="font-semibold text-blue-900 text-sm truncate">
+                                        {(teacherData as any).teacherName}
+                                      </span>
+                                      <span className="text-xs text-blue-700 ml-1">
+                                        ({(teacherData as any).teacherClass})
+                                      </span>
+                                    </div>
+                                    <span className={`px-2 py-1 rounded text-xs font-medium ${
+                                      (teacherData as any).sessionPeriod === 'AM' 
+                                        ? 'bg-orange-200 text-orange-800' 
+                                        : 'bg-purple-200 text-purple-800'
+                                    }`}>
+                                      {(teacherData as any).sessionPeriod === 'AM' ? '오전' : '오후'}
+                                    </span>
                                   </div>
                                   
-                                  {/* 오전 슬롯 */}
-                                  {(teacherData as any).amSlots.length > 0 && (
-                                    <div className="mb-2">
-                                      <div className="text-xs font-medium text-orange-700 mb-1 flex items-center">
-                                        <span className="bg-orange-200 px-2 py-0.5 rounded text-xs mr-1">오전</span>
-                                        <span>{(teacherData as any).amSlots.length}개</span>
-                                      </div>
-                                      <div className="grid grid-cols-3 gap-1">
-                                        {(teacherData as any).amSlots.slice(0, 6).map((slot: any) => (
-                                          <div
-                                            key={slot.id}
-                                            className={`text-xs p-1.5 rounded text-center font-medium ${
-                                              !slot.is_available ? 'bg-gray-300 text-gray-700' :
-                                              slot.current_reservations >= slot.max_capacity ? 'bg-red-200 text-red-800' :
-                                              slot.current_reservations > 0 ? 'bg-yellow-200 text-yellow-800' :
-                                              'bg-green-200 text-green-800'
-                                            }`}
-                                            title={`${slot.time_slot} - ${slot.current_reservations}/${slot.max_capacity} ${!slot.is_available ? '(쉬는시간)' : ''}`}
-                                          >
-                                            <div className="text-xs font-bold">{slot.time_slot}</div>
-                                            <div className="text-xs">
-                                              {!slot.is_available ? '휴' : `${slot.current_reservations}/${slot.max_capacity}`}
-                                            </div>
-                                          </div>
-                                        ))}
-                                      </div>
-                                      {(teacherData as any).amSlots.length > 6 && (
-                                        <div className="text-xs text-center text-orange-600 mt-1">
-                                          +{(teacherData as any).amSlots.length - 6}개 더
-                                        </div>
-                                      )}
+                                  <div className="flex justify-between items-center text-xs text-gray-600 mb-2">
+                                    <span>총 {(teacherData as any).totalSlots}개 슬롯</span>
+                                    <div className="flex gap-2">
+                                      <span className="text-green-600">가능 {(teacherData as any).availableSlots}</span>
+                                      <span className="text-yellow-600">예약 {(teacherData as any).reservedSlots}</span>
                                     </div>
-                                  )}
+                                  </div>
                                   
-                                  {/* 오후 슬롯 */}
-                                  {(teacherData as any).pmSlots.length > 0 && (
-                                    <div>
-                                      <div className="text-xs font-medium text-purple-700 mb-1 flex items-center">
-                                        <span className="bg-purple-200 px-2 py-0.5 rounded text-xs mr-1">오후</span>
-                                        <span>{(teacherData as any).pmSlots.length}개</span>
-                                      </div>
-                                      <div className="grid grid-cols-3 gap-1">
-                                        {(teacherData as any).pmSlots.slice(0, 6).map((slot: any) => (
-                                          <div
-                                            key={slot.id}
-                                            className={`text-xs p-1.5 rounded text-center font-medium ${
-                                              !slot.is_available ? 'bg-gray-300 text-gray-700' :
-                                              slot.current_reservations >= slot.max_capacity ? 'bg-red-200 text-red-800' :
-                                              slot.current_reservations > 0 ? 'bg-yellow-200 text-yellow-800' :
-                                              'bg-green-200 text-green-800'
-                                            }`}
-                                            title={`${slot.time_slot} - ${slot.current_reservations}/${slot.max_capacity} ${!slot.is_available ? '(쉬는시간)' : ''}`}
+                                  {(teacherData as any).breakSlots.length > 0 && (
+                                    <div className="mt-2">
+                                      <div className="text-xs text-gray-600 mb-1">쉬는시간:</div>
+                                      <div className="flex flex-wrap gap-1">
+                                        {(teacherData as any).breakSlots.map((timeSlot: string, index: number) => (
+                                          <span 
+                                            key={index}
+                                            className="px-2 py-1 bg-gray-200 text-gray-700 rounded text-xs"
                                           >
-                                            <div className="text-xs font-bold">{slot.time_slot}</div>
-                                            <div className="text-xs">
-                                              {!slot.is_available ? '휴' : `${slot.current_reservations}/${slot.max_capacity}`}
-                                            </div>
-                                          </div>
+                                            {timeSlot}
+                                          </span>
                                         ))}
                                       </div>
-                                      {(teacherData as any).pmSlots.length > 6 && (
-                                        <div className="text-xs text-center text-purple-600 mt-1">
-                                          +{(teacherData as any).pmSlots.length - 6}개 더
-                                        </div>
-                                      )}
                                     </div>
                                   )}
                                 </div>
