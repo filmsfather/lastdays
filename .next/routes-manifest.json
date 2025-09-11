@@ -209,6 +209,12 @@
       "namedRegex": "^/dashboard/teacher(?:/)?$"
     },
     {
+      "page": "/dashboard/teacher/schedule",
+      "regex": "^/dashboard/teacher/schedule(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/dashboard/teacher/schedule(?:/)?$"
+    },
+    {
       "page": "/dashboard/teacher/students",
       "regex": "^/dashboard/teacher/students(?:/)?$",
       "routeKeys": {},

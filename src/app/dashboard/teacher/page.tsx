@@ -257,6 +257,12 @@ export default function TeacherDashboardPage() {
                 오늘 스케줄
               </Link>
               <Link 
+                href="/dashboard/teacher/schedule"
+                className="px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors"
+              >
+                내 스케줄 관리
+              </Link>
+              <Link 
                 href="/dashboard/teacher/students"
                 className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
               >
@@ -347,6 +353,13 @@ export default function TeacherDashboardPage() {
                       <p className="text-sm text-blue-800 mt-2">오늘 스케줄</p>
                     </Link>
                     <Link
+                      href="/dashboard/teacher/schedule"
+                      className="p-4 bg-purple-50 rounded-lg hover:bg-purple-100 transition-colors text-center"
+                    >
+                      <div className="text-purple-600 font-medium">🗓️</div>
+                      <p className="text-sm text-purple-800 mt-2">내 스케줄 관리</p>
+                    </Link>
+                    <Link
                       href="/dashboard/teacher/students"
                       className="p-4 bg-green-50 rounded-lg hover:bg-green-100 transition-colors text-center"
                     >
@@ -355,10 +368,10 @@ export default function TeacherDashboardPage() {
                     </Link>
                     <button
                       onClick={() => setActiveTab('problems')}
-                      className="p-4 bg-purple-50 rounded-lg hover:bg-purple-100 transition-colors text-center"
+                      className="p-4 bg-orange-50 rounded-lg hover:bg-orange-100 transition-colors text-center"
                     >
-                      <div className="text-purple-600 font-medium">📝</div>
-                      <p className="text-sm text-purple-800 mt-2">문제 관리</p>
+                      <div className="text-orange-600 font-medium">📝</div>
+                      <p className="text-sm text-orange-800 mt-2">문제 관리</p>
                     </button>
                     <Link
                       href="/hall-of-fame"

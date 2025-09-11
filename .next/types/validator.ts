@@ -77,6 +77,12 @@ type RouteHandlerConfig<Route extends AppRouteHandlerRoutes = AppRouteHandlerRou
   handler satisfies AppPageConfig<"/dashboard/teacher">
 }
 
+// Validate ../../src/app/dashboard/teacher/schedule/page.tsx
+{
+  const handler = {} as typeof import("../../src/app/dashboard/teacher/schedule/page.js")
+  handler satisfies AppPageConfig<"/dashboard/teacher/schedule">
+}
+
 // Validate ../../src/app/dashboard/teacher/students/[studentId]/page.tsx
 {
   const handler = {} as typeof import("../../src/app/dashboard/teacher/students/[studentId]/page.js")
@@ -345,6 +351,24 @@ type RouteHandlerConfig<Route extends AppRouteHandlerRoutes = AppRouteHandlerRou
 {
   const handler = {} as typeof import("../../src/app/api/teacher/schedule/today/route.js")
   handler satisfies RouteHandlerConfig<"/api/teacher/schedule/today">
+}
+
+// Validate ../../src/app/api/teacher/slots/create-timeslots/route.ts
+{
+  const handler = {} as typeof import("../../src/app/api/teacher/slots/create-timeslots/route.js")
+  handler satisfies RouteHandlerConfig<"/api/teacher/slots/create-timeslots">
+}
+
+// Validate ../../src/app/api/teacher/slots/manage-timeslots/route.ts
+{
+  const handler = {} as typeof import("../../src/app/api/teacher/slots/manage-timeslots/route.js")
+  handler satisfies RouteHandlerConfig<"/api/teacher/slots/manage-timeslots">
+}
+
+// Validate ../../src/app/api/teacher/slots/route.ts
+{
+  const handler = {} as typeof import("../../src/app/api/teacher/slots/route.js")
+  handler satisfies RouteHandlerConfig<"/api/teacher/slots">
 }
 
 // Validate ../../src/app/api/teacher/students/[studentId]/route.ts
