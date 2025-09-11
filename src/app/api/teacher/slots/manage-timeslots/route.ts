@@ -26,7 +26,7 @@ export const PATCH = withTeacherOrAdmin(async (request) => {
     // 쉬는시간으로 설정하려는 경우, 1일 최대 8개 제한 확인
     if (isBreak) {
       const { data: existingBreaks, error: countError } = await supabase
-        .from('time_slots')
+        .from('reservation_slots')
         .select('id')
         .eq('date', date)
         .eq('teacher_id', teacherId)

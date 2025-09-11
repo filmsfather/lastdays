@@ -62,6 +62,16 @@ export const POST = withTeacherOrAdmin(async (request) => {
     }
 
     // PostgreSQL 함수 호출로 타임슬롯 생성
+    console.log('Calling generate_time_slots with params:', {
+      p_date: date,
+      p_teacher_id: teacherId,
+      p_am_start: actualAmStart,
+      p_am_end: actualAmEnd,
+      p_pm_start: actualPmStart,
+      p_pm_end: actualPmEnd,
+      p_interval_minutes: intervalMinutes
+    })
+
     const { data: result, error } = await supabase
       .rpc('generate_time_slots', {
         p_date: date,
@@ -73,10 +83,14 @@ export const POST = withTeacherOrAdmin(async (request) => {
         p_interval_minutes: intervalMinutes
       })
 
+    console.log('Function result:', result)
+    console.log('Function error:', error)
+
     if (error) {
       console.error('Error generating time slots:', error)
+      console.error('Full error details:', JSON.stringify(error, null, 2))
       return NextResponse.json(
-        { error: '타임슬롯 생성 중 오류가 발생했습니다.' },
+        { error: '타임슬롯 생성 중 오류가 발생했습니다.', details: error.message },
         { status: 500 }
       )
     }

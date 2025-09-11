@@ -37,7 +37,7 @@ export const GET = withTeacherOrAdmin(async (request) => {
 
     // 타임슬롯 조회
     const { data: slots, error } = await supabase
-      .from('time_slots')
+      .from('reservation_slots')
       .select(`
         id,
         date,
