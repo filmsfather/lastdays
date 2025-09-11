@@ -37,8 +37,9 @@ function AdminDashboard() {
     teacherId: string; 
     blocks: Array<{block: 'AM' | 'PM'; maxCapacity: number}> 
   }>({ date: '', teacherId: '', blocks: [] })
-  const [existingSlots, setExistingSlots] = useState<any[]>([])
+  const [weeklySlots, setWeeklySlots] = useState<any[]>([])
   const [selectedWeekView, setSelectedWeekView] = useState('')
+  const [currentWeekStart, setCurrentWeekStart] = useState<Date>(new Date())
   const [teachers, setTeachers] = useState<Account[]>([])
 
   const fetchAccounts = useCallback(async () => {
@@ -221,25 +222,40 @@ function AdminDashboard() {
     return now.toISOString().split('T')[0]
   }
 
-  const getCurrentWeek = () => {
-    const now = new Date()
-    const year = now.getFullYear()
-    const start = new Date(year, 0, 1)
-    const days = Math.floor((now.getTime() - start.getTime()) / (24 * 60 * 60 * 1000))
-    const week = Math.ceil((days + start.getDay() + 1) / 7)
-    return `${year}-${week.toString().padStart(2, '0')}`
+  // 주간 시작일 계산 (월요일 기준)
+  const getWeekStart = (date: Date) => {
+    const d = new Date(date)
+    const day = d.getDay()
+    const diff = d.getDate() - day + (day === 0 ? -6 : 1)
+    return new Date(d.setDate(diff))
   }
 
-  const fetchExistingSlots = async (week?: string) => {
-    if (!week) return
+  // 주간 날짜 배열 생성
+  const getWeekDates = (weekStart: Date) => {
+    const dates = []
+    for (let i = 0; i < 7; i++) {
+      const date = new Date(weekStart)
+      date.setDate(weekStart.getDate() + i)
+      dates.push(date)
+    }
+    return dates
+  }
+
+  const fetchWeeklySchedule = async (weekStart: Date) => {
     try {
-      const response = await fetch(`/api/admin/slots?week=${week}`)
+      const weekStartStr = weekStart.toISOString().split('T')[0]
+      const response = await fetch(`/api/admin/weekly-schedule?weekStart=${weekStartStr}`)
       const data = await response.json()
+      
       if (data.success) {
-        setExistingSlots(data.slots || [])
+        setWeeklySlots(data.slots || [])
+      } else {
+        console.error('Failed to fetch weekly schedule:', data.error)
+        setWeeklySlots([])
       }
     } catch (error) {
-      console.error('기존 슬롯 조회 실패:', error)
+      console.error('주간 스케줄 조회 실패:', error)
+      setWeeklySlots([])
     }
   }
 
@@ -288,9 +304,9 @@ function AdminDashboard() {
       alert(data.message)
       setShowCreateSlotsModal(false)
       setSlotForm({ date: '', teacherId: '', blocks: [] })
-      // 기존 슬롯 새로고침
+      // 주간 스케줄 새로고침
       if (selectedWeekView) {
-        fetchExistingSlots(selectedWeekView)
+        fetchWeeklySchedule(currentWeekStart)
       }
     } catch (err) {
       alert(err instanceof Error ? err.message : '오류가 발생했습니다.')
@@ -439,8 +455,10 @@ function AdminDashboard() {
               </button>
               <button
                 onClick={() => {
-                  setSelectedWeekView(getCurrentWeek())
-                  fetchExistingSlots(getCurrentWeek())
+                  const weekStart = getWeekStart(new Date())
+                  setCurrentWeekStart(weekStart)
+                  setSelectedWeekView('current')
+                  fetchWeeklySchedule(weekStart)
                 }}
                 className="w-full px-6 py-2 bg-gray-600 text-white rounded hover:bg-gray-700"
               >
@@ -473,8 +491,8 @@ function AdminDashboard() {
         {selectedWeekView && (
           <div className="bg-white rounded-lg shadow mb-8">
             <div className="p-6 border-b">
-              <div className="flex justify-between items-center">
-                <h2 className="text-xl font-semibold text-gray-900">{selectedWeekView} 주차 스케줄</h2>
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-semibold text-gray-900">주간 스케줄</h2>
                 <button
                   onClick={() => setSelectedWeekView('')}
                   className="text-gray-500 hover:text-gray-700"
@@ -482,60 +500,202 @@ function AdminDashboard() {
                   닫기
                 </button>
               </div>
+              
+              {/* 주간 네비게이션 */}
+              <div className="flex items-center justify-between">
+                <button
+                  onClick={() => {
+                    const newWeekStart = new Date(currentWeekStart)
+                    newWeekStart.setDate(newWeekStart.getDate() - 7)
+                    setCurrentWeekStart(newWeekStart)
+                    fetchWeeklySchedule(newWeekStart)
+                  }}
+                  className="flex items-center px-3 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+                >
+                  <svg className="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                  </svg>
+                  이전 주
+                </button>
+                
+                <div className="flex items-center space-x-2">
+                  <h3 className="text-lg font-semibold text-gray-900">
+                    {currentWeekStart.getFullYear()}년 {currentWeekStart.getMonth() + 1}월 {currentWeekStart.getDate()}일 주간
+                  </h3>
+                  <button
+                    onClick={() => {
+                      const weekStart = getWeekStart(new Date())
+                      setCurrentWeekStart(weekStart)
+                      fetchWeeklySchedule(weekStart)
+                    }}
+                    className="px-3 py-1 text-sm bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors"
+                  >
+                    이번 주
+                  </button>
+                </div>
+
+                <button
+                  onClick={() => {
+                    const newWeekStart = new Date(currentWeekStart)
+                    newWeekStart.setDate(newWeekStart.getDate() + 7)
+                    setCurrentWeekStart(newWeekStart)
+                    fetchWeeklySchedule(newWeekStart)
+                  }}
+                  className="flex items-center px-3 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+                >
+                  다음 주
+                  <svg className="w-5 h-5 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </button>
+              </div>
             </div>
+            
             <div className="p-6">
-              {existingSlots.length === 0 ? (
+              {weeklySlots.length === 0 ? (
                 <div className="text-center py-8 text-gray-500">
-                  이 주차에 등록된 슬롯이 없습니다.
+                  이 주간에 등록된 타임슬롯이 없습니다.
                 </div>
               ) : (
-                <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">날짜</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">시간</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">교사</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">예약현황</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">관리</th>
-                      </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                      {existingSlots.map((slot) => (
-                        <tr key={slot.id} className="hover:bg-gray-50">
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                            {new Date(slot.date).toLocaleDateString('ko-KR', { weekday: 'short', month: 'short', day: 'numeric' })}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                            {slot.time_slot ? 
-                              `${slot.session_period === 'AM' ? '오전' : '오후'} ${slot.time_slot}` : 
-                              getBlockTime(slot.block)
-                            }
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                            {slot.teacher?.name || '알 수 없음'}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                            <span className={`px-2 py-1 text-xs rounded-full ${
-                              slot.current_reservations >= slot.max_capacity 
-                                ? 'bg-red-100 text-red-800' 
-                                : 'bg-green-100 text-green-800'
-                            }`}>
-                              {slot.current_reservations}/{slot.max_capacity}명
-                            </span>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            <button
-                              onClick={() => window.open('/dashboard/admin/timeslot-management', '_blank')}
-                              className="text-blue-600 hover:text-blue-900 text-sm"
-                            >
-                              관리
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                <div>
+                  {/* 주간 캘린더 헤더 */}
+                  <div className="grid grid-cols-7 gap-1 mb-4">
+                    {['월', '화', '수', '목', '금', '토', '일'].map((day) => (
+                      <div key={day} className="text-center p-2 text-sm font-medium text-gray-500 bg-gray-50 rounded-lg">
+                        {day}
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* 주간 캘린더 */}
+                  <div className="grid grid-cols-7 gap-1">
+                    {getWeekDates(currentWeekStart).map((date, index) => {
+                      const dateString = date.toISOString().split('T')[0]
+                      const daySlots = weeklySlots.filter(slot => slot.date === dateString)
+                      const isToday = date.toDateString() === new Date().toDateString()
+                      const isPast = date < new Date() && !isToday
+                      
+                      // 슬롯을 교사별로 그룹핑
+                      const slotsByTeacher = daySlots.reduce((acc, slot) => {
+                        const teacherKey = `${slot.teacher_name} (${slot.teacher_class})`
+                        if (!acc[teacherKey]) acc[teacherKey] = []
+                        acc[teacherKey].push(slot)
+                        return acc
+                      }, {} as Record<string, any[]>)
+                      
+                      return (
+                        <div
+                          key={index}
+                          className={`min-h-64 p-2 border rounded-lg ${
+                            isPast ? 'bg-gray-50 opacity-50' : 'bg-white'
+                          } ${isToday ? 'border-blue-300 bg-blue-50' : 'border-gray-200'}`}
+                        >
+                          <div className={`text-sm font-medium mb-3 text-center ${
+                            isToday ? 'text-blue-700' : 'text-gray-700'
+                          }`}>
+                            {date.getMonth() + 1}/{date.getDate()}
+                          </div>
+                          
+                          {Object.keys(slotsByTeacher).length === 0 ? (
+                            <div className="text-xs text-gray-400 text-center py-2">
+                              스케줄 없음
+                            </div>
+                          ) : (
+                            <div className="space-y-2">
+                              {Object.entries(slotsByTeacher).map(([teacherName, teacherSlots]) => (
+                                <div key={teacherName} className="border rounded p-2 bg-gray-50">
+                                  <div className="text-xs font-medium text-gray-800 mb-1 truncate" title={teacherName}>
+                                    {teacherName}
+                                  </div>
+                                  <div className="space-y-1">
+                                    {(teacherSlots as any[]).slice(0, 3).map((slot) => (
+                                      <div
+                                        key={slot.id}
+                                        className={`text-xs p-1 rounded ${
+                                          !slot.is_available ? 'bg-gray-200 text-gray-600' :
+                                          slot.current_reservations > 0 ? 'bg-blue-100 text-blue-800' :
+                                          'bg-green-100 text-green-800'
+                                        }`}
+                                      >
+                                        <div className="font-medium">
+                                          {slot.session_period} {slot.time_slot}
+                                        </div>
+                                        <div className="flex justify-between">
+                                          <span>{slot.current_reservations}/{slot.max_capacity}</span>
+                                          {!slot.is_available && <span className="text-red-600">휴</span>}
+                                        </div>
+                                      </div>
+                                    ))}
+                                    {teacherSlots.length > 3 && (
+                                      <div className="text-xs text-gray-500 text-center">
+                                        +{teacherSlots.length - 3}개 더
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
+
+                  {/* 상세 리스트 */}
+                  <div className="mt-8">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4">상세 목록</h3>
+                    <div className="overflow-x-auto">
+                      <table className="min-w-full divide-y divide-gray-200">
+                        <thead className="bg-gray-50">
+                          <tr>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">날짜</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">시간</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">교사</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">상태</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">예약현황</th>
+                          </tr>
+                        </thead>
+                        <tbody className="bg-white divide-y divide-gray-200">
+                          {weeklySlots.map((slot) => (
+                            <tr key={slot.id} className="hover:bg-gray-50">
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                {new Date(slot.date).toLocaleDateString('ko-KR', { weekday: 'short', month: 'short', day: 'numeric' })}
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                {slot.session_period === 'AM' ? '오전' : '오후'} {slot.time_slot}
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                <div>
+                                  <div className="font-medium">{slot.teacher_name}</div>
+                                  <div className="text-xs text-gray-500">{slot.teacher_class}</div>
+                                </div>
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap">
+                                <span className={`px-2 py-1 text-xs rounded-full ${
+                                  !slot.is_available 
+                                    ? 'bg-gray-100 text-gray-800' 
+                                    : 'bg-green-100 text-green-800'
+                                }`}>
+                                  {slot.is_available ? '예약가능' : '쉬는시간'}
+                                </span>
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                <span className={`px-2 py-1 text-xs rounded-full ${
+                                  slot.current_reservations >= slot.max_capacity 
+                                    ? 'bg-red-100 text-red-800' 
+                                    : slot.current_reservations > 0
+                                    ? 'bg-yellow-100 text-yellow-800'
+                                    : 'bg-green-100 text-green-800'
+                                }`}>
+                                  {slot.current_reservations}/{slot.max_capacity}명
+                                </span>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
                 </div>
               )}
             </div>

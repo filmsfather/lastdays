@@ -191,6 +191,12 @@ type RouteHandlerConfig<Route extends AppRouteHandlerRoutes = AppRouteHandlerRou
   handler satisfies RouteHandlerConfig<"/api/admin/tickets/weekly-issue">
 }
 
+// Validate ../../src/app/api/admin/weekly-schedule/route.ts
+{
+  const handler = {} as typeof import("../../src/app/api/admin/weekly-schedule/route.js")
+  handler satisfies RouteHandlerConfig<"/api/admin/weekly-schedule">
+}
+
 // Validate ../../src/app/api/auth/login/route.ts
 {
   const handler = {} as typeof import("../../src/app/api/auth/login/route.js")
