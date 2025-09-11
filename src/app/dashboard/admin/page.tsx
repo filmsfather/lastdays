@@ -626,9 +626,9 @@ function AdminDashboard() {
                                         </div>
                                       </div>
                                     ))}
-                                    {teacherSlots.length > 3 && (
+                                    {(teacherSlots as any[]).length > 3 && (
                                       <div className="text-xs text-gray-500 text-center">
-                                        +{teacherSlots.length - 3}개 더
+                                        +{(teacherSlots as any[]).length - 3}개 더
                                       </div>
                                     )}
                                   </div>
