@@ -280,9 +280,14 @@ export default function StudentDashboard() {
   }
 
   // 예약 생성
-  const createReservation = async () => {
-    if (!selectedSlot || remainingTickets <= 0) {
-      toast.error('슬롯을 선택하고 이용권을 확인해주세요.')
+  const createReservation = async (type: 'normal' | 'essay' = 'normal') => {
+    const requiredTickets = type === 'essay' ? 2 : 1
+    
+    if (!selectedSlot || remainingTickets < requiredTickets) {
+      const message = type === 'essay' 
+        ? '작법 예약을 위해서는 이용권이 2장 필요합니다.' 
+        : '슬롯을 선택하고 이용권을 확인해주세요.'
+      toast.error(message)
       return
     }
 
@@ -293,14 +298,18 @@ export default function StudentDashboard() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          slotId: selectedSlot
+          slotId: selectedSlot,
+          type
         }),
       })
 
       const data = await response.json()
 
       if (data.success) {
-        toast.success('예약이 생성되었습니다.')
+        const successMessage = type === 'essay' 
+          ? '작법 예약이 성공적으로 생성되었습니다!' 
+          : '예약이 생성되었습니다.'
+        toast.success(successMessage)
         setSelectedSlot(null)
         await Promise.all([fetchTickets(), fetchWeekSlots(), fetchReservations()])
       } else {
@@ -1108,20 +1117,47 @@ export default function StudentDashboard() {
             </div>
           </div>
 
-          {/* 예약하기 버튼 */}
+          {/* 예약하기 버튼들 */}
           <div className="mt-8 pt-6 border-t-2 border-gray-200">
-            <button
-              onClick={createReservation}
-              disabled={!selectedSlot || remainingTickets <= 0}
-              className={`w-full py-6 px-8 rounded-2xl font-bold text-xl transition-all duration-300 ${
-                selectedSlot && remainingTickets > 0
-                  ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-xl hover:shadow-2xl transform hover:-translate-y-2 hover:scale-105'
-                  : 'bg-gray-200 text-gray-500 cursor-not-allowed'
-              }`}
-            >
-              {remainingTickets <= 0 ? '이용권이 없습니다 😔' : 
-               selectedSlot ? '선택한 시간으로 예약하기 ✨' : '시간을 선택해주세요 📅'}
-            </button>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* 일반 예약 버튼 */}
+              <button
+                onClick={() => createReservation('normal')}
+                disabled={!selectedSlot || remainingTickets <= 0}
+                className={`py-6 px-8 rounded-2xl font-bold text-xl transition-all duration-300 ${
+                  selectedSlot && remainingTickets > 0
+                    ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-xl hover:shadow-2xl transform hover:-translate-y-2 hover:scale-105'
+                    : 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                }`}
+              >
+                {remainingTickets <= 0 ? '이용권 부족 😔' : 
+                 selectedSlot ? '일반 예약 📝' : '시간 선택 필요 📅'}
+              </button>
+              
+              {/* 작법 예약 버튼 */}
+              <button
+                onClick={() => createReservation('essay')}
+                disabled={!selectedSlot || remainingTickets < 2}
+                className={`py-6 px-8 rounded-2xl font-bold text-xl transition-all duration-300 ${
+                  selectedSlot && remainingTickets >= 2
+                    ? 'bg-gradient-to-r from-purple-600 to-purple-700 text-white shadow-xl hover:shadow-2xl transform hover:-translate-y-2 hover:scale-105'
+                    : 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                }`}
+              >
+                {remainingTickets < 2 ? '이용권 2장 필요 😔' : 
+                 selectedSlot ? '작법 예약 ✍️' : '시간 선택 필요 📅'}
+              </button>
+            </div>
+            
+            {/* 안내 메시지 */}
+            <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-600">
+              <div className="text-center p-3 bg-blue-50 rounded-lg">
+                <strong>일반 예약:</strong> 이용권 1장, 1시간
+              </div>
+              <div className="text-center p-3 bg-purple-50 rounded-lg">
+                <strong>작법 예약:</strong> 이용권 2장, 연속 2시간
+              </div>
+            </div>
           </div>
         </div>
 

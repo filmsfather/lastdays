@@ -2,6 +2,106 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getCurrentUser } from '@/lib/auth'
 import { supabase } from '@/lib/supabase'
 
+// 작법 예약 처리 함수 (연속 2슬롯)
+async function handleEssayReservation(firstSlotId: number, studentId: number, slotDate: Date) {
+  try {
+    // 1. 첫 번째 슬롯 정보 조회
+    const { data: firstSlot, error: firstSlotError } = await supabase
+      .from('reservation_slots')
+      .select('*')
+      .eq('id', firstSlotId)
+      .single()
+
+    if (firstSlotError || !firstSlot) {
+      return NextResponse.json(
+        { error: '첫 번째 슬롯을 찾을 수 없습니다.' },
+        { status: 404 }
+      )
+    }
+
+    // 2. 연속된 다음 슬롯 찾기 (같은 날, 같은 교사, 다음 시간)
+    const currentTime = firstSlot.time_slot
+    const nextTime = new Date(`2000-01-01T${currentTime}`)
+    nextTime.setMinutes(nextTime.getMinutes() + 10) // 10분 간격
+    const nextTimeString = nextTime.toTimeString().slice(0, 5)
+
+    const { data: secondSlot, error: secondSlotError } = await supabase
+      .from('reservation_slots')
+      .select('*')
+      .eq('date', firstSlot.date)
+      .eq('teacher_id', firstSlot.teacher_id)
+      .eq('time_slot', nextTimeString)
+      .eq('is_available', true)
+      .single()
+
+    if (secondSlotError || !secondSlot) {
+      return NextResponse.json(
+        { error: '연속된 시간 슬롯이 없어 작법 예약이 불가능합니다.' },
+        { status: 400 }
+      )
+    }
+
+    // 3. 두 슬롯 모두 예약 가능한지 확인
+    if (firstSlot.current_reservations >= firstSlot.max_capacity || 
+        secondSlot.current_reservations >= secondSlot.max_capacity) {
+      return NextResponse.json(
+        { error: '선택한 시간대가 이미 예약되어 있습니다.' },
+        { status: 400 }
+      )
+    }
+
+    // 4. 학생 티켓 확인 (2장 필요)
+    const { data: studentData } = await supabase
+      .from('accounts')
+      .select('current_tickets')
+      .eq('id', studentId)
+      .single()
+
+    if (!studentData || studentData.current_tickets < 2) {
+      return NextResponse.json(
+        { error: '작법 예약을 위해서는 이용권이 2장 필요합니다.' },
+        { status: 400 }
+      )
+    }
+
+    // 5. 트랜잭션으로 2슬롯 동시 예약
+    const essayGroupId = crypto.randomUUID()
+    
+    const { data, error } = await supabase.rpc('create_essay_reservation', {
+      p_first_slot_id: firstSlotId,
+      p_second_slot_id: secondSlot.id,
+      p_student_id: studentId,
+      p_essay_group_id: essayGroupId
+    })
+
+    if (error) {
+      console.error('Essay reservation creation failed:', error)
+      return NextResponse.json(
+        { error: '작법 예약 생성 중 오류가 발생했습니다.' },
+        { status: 500 }
+      )
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: '작법 예약이 성공적으로 완료되었습니다.',
+      data: {
+        type: 'essay',
+        essayGroupId,
+        slots: [firstSlot, secondSlot],
+        reservations: data
+      }
+    })
+
+  } catch (error) {
+    console.error('Essay reservation error:', error)
+    return NextResponse.json(
+      { error: '작법 예약 처리 중 오류가 발생했습니다.' },
+      { status: 500 }
+    )
+  }
+}
+
 // GET /api/reservations - 예약 조회
 export async function GET(request: NextRequest) {
   try {
@@ -82,9 +182,9 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { slotId, studentId } = body
+    const { slotId, studentId, type = 'normal' } = body
 
-    console.log('Creating reservation:', { slotId, studentId, currentUser: currentUser.role })
+    console.log('Creating reservation:', { slotId, studentId, type, currentUser: currentUser.role })
 
     // 입력값 검증
     if (!slotId) {
@@ -138,7 +238,12 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // 트랜잭션 시작
+    // 작법 예약 처리 (연속 2슬롯)
+    if (type === 'essay') {
+      return await handleEssayReservation(slotId, targetStudentId, slotDate)
+    }
+
+    // 일반 예약 처리
     const { data, error } = await supabase.rpc('create_reservation_with_ticket_deduction', {
       p_slot_id: slotId,
       p_student_id: targetStudentId
