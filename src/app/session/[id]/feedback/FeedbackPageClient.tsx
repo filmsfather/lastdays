@@ -368,7 +368,7 @@ export default function FeedbackPageClient({ sessionData: initialSessionData, cu
               </h1>
               <p className="text-gray-600">
                 {formatDate(sessionData.slot.date)} {getSessionPeriodTime(sessionData.slot.session_period)}
-                {sessionData.problemSnapshot && ` | ${sessionData.teacher.name} 선생님`}
+                {timeStatus.canShow && sessionData.problemSnapshot && ` | ${sessionData.teacher.name} 선생님`}
                 {isHallOfFameMode && (
                   <span className="ml-3 px-2 py-1 bg-yellow-100 text-yellow-800 text-xs rounded-full">
                     명예의 전당
