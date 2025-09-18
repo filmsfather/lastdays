@@ -69,6 +69,26 @@ const getScoreColor = (scoreResult: string) => {
   return 'text-blue-600 font-semibold'
 }
 
+// 시간 상태 확인 함수 (피드백 페이지와 동일한 로직)
+const getTimeStatus = (slotDate: string, timeSlot: string) => {
+  if (!slotDate || !timeSlot) {
+    return { canShow: false }
+  }
+
+  // 현재 서울 시간
+  const currentTime = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Seoul' }))
+  
+  // 슬롯 시간 계산 (time_slot은 "10:00:00" 형식)
+  const slotDateTime = new Date(slotDate + 'T' + timeSlot)
+  
+  // 면접 시간(10분) 종료 시점
+  const INTERVIEW_DURATION_MINUTES = 10
+  const sessionEnd = new Date(slotDateTime.getTime() + INTERVIEW_DURATION_MINUTES * 60000)
+
+  // 세션이 종료된 경우에만 선생님 이름 표시
+  return { canShow: currentTime >= sessionEnd }
+}
+
 interface Props {
   searchParams: Promise<{
     studentId?: string
@@ -276,7 +296,12 @@ export default async function StudentHistoryPage({ searchParams }: Props) {
                         {formatTimeSlot(session.timeSlot)}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {session.teacherName} 선생님
+                        {(() => {
+                          const timeStatus = getTimeStatus(session.date, session.timeSlot)
+                          return timeStatus.canShow 
+                            ? `${session.teacherName} 선생님`
+                            : '미공개'
+                        })()}
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-900 max-w-xs truncate">
                         {session.problemTitle}
