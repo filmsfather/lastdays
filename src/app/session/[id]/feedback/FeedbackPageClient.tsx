@@ -367,8 +367,8 @@ export default function FeedbackPageClient({ sessionData: initialSessionData, cu
                 학습 피드백 {isHallOfFameMode && '🏆'}
               </h1>
               <p className="text-gray-600">
-                {formatDate(sessionData.slot.date)} {getSessionPeriodTime(sessionData.slot.session_period)} | 
-                {sessionData.teacher.name} 선생님
+                {formatDate(sessionData.slot.date)} {getSessionPeriodTime(sessionData.slot.session_period)}
+                {sessionData.problemSnapshot && ` | ${sessionData.teacher.name} 선생님`}
                 {isHallOfFameMode && (
                   <span className="ml-3 px-2 py-1 bg-yellow-100 text-yellow-800 text-xs rounded-full">
                     명예의 전당
@@ -400,9 +400,9 @@ export default function FeedbackPageClient({ sessionData: initialSessionData, cu
               </div>
               <div className="flex space-x-6">
                 <div>
-                  <h3 className="font-medium text-gray-700 mb-1">제한시간</h3>
+                  <h3 className="font-medium text-gray-700 mb-1">사전 열람시간</h3>
                   <span className="px-3 py-1 bg-blue-100 text-blue-700 text-sm rounded">
-                    {sessionData.problemSnapshot.limit_minutes}분
+                    {sessionData.scheduling.previewLeadMinutes}분
                   </span>
                 </div>
                 <div>

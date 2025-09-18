@@ -816,9 +816,6 @@ export default function StudentDashboard() {
                           <p className="text-gray-600 text-sm">
                             {getSessionLabel(reservation.slot.session_period)} {formatTimeSlot(reservation.slot.time_slot)}
                           </p>
-                          <p className="text-gray-500 text-xs">
-                            {reservation.slot.teacher.name} 선생님
-                          </p>
                         </div>
                         <span className={`px-2 py-1 rounded-lg text-xs font-medium ${
                           reservation.status === 'completed' ? 'bg-green-100 text-green-800' :
@@ -907,9 +904,6 @@ export default function StudentDashboard() {
                       </div>
                       <div className="text-sm text-gray-600">
                         {getSessionLabel(reservation.slot.session_period)} {formatTimeSlot(reservation.slot.time_slot)}
-                      </div>
-                      <div className="text-xs text-gray-500">
-                        {reservation.slot.teacher.name} 선생님
                       </div>
                     </div>
                   ))}
@@ -1051,9 +1045,6 @@ export default function StudentDashboard() {
                               <div>
                                 <p className="font-semibold text-gray-800 text-base">
                                   {getSessionLabel(reservation.slot.session_period)} {formatTimeSlot(reservation.slot.time_slot)}
-                                </p>
-                                <p className="text-sm text-gray-600">
-                                  {reservation.slot.teacher.name} 선생님
                                 </p>
                               </div>
                             </div>
@@ -1311,9 +1302,6 @@ export default function StudentDashboard() {
                         <div className="flex-1">
                           <p className="font-medium text-gray-800">{problem.title}</p>
                           <div className="flex items-center mt-2 space-x-2">
-                            <span className="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded">
-                              제한시간 {problem.limit_minutes}분
-                            </span>
                             <span className="px-2 py-1 bg-green-100 text-green-700 text-xs rounded">
                               사전열람 {problem.preview_lead_time}분 전
                             </span>
