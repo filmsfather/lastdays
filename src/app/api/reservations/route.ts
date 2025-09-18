@@ -105,6 +105,39 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // 슬롯 정보 조회 및 요일별 예약 권한 체크
+    const { data: slotData, error: slotError } = await supabase
+      .from('reservation_slots') 
+      .select('date')
+      .eq('id', slotId)
+      .single()
+
+    if (slotError || !slotData) {
+      return NextResponse.json(
+        { error: '존재하지 않는 슬롯입니다.' },
+        { status: 404 }
+      )
+    }
+
+    // 예약 날짜의 요일 확인 (0=일요일, 6=토요일)
+    const slotDate = new Date(slotData.date)
+    const dayOfWeek = slotDate.getDay()
+
+    // 해당 요일의 예약 권한 확인
+    const { data: daySetting, error: dayError } = await supabase
+      .from('reservation_day_settings')
+      .select('is_enabled')
+      .eq('day_of_week', dayOfWeek)
+      .single()
+
+    if (dayError || !daySetting?.is_enabled) {
+      const dayNames = ['일요일', '월요일', '화요일', '수요일', '목요일', '금요일', '토요일']
+      return NextResponse.json(
+        { error: `${dayNames[dayOfWeek]}은 현재 예약이 제한되어 있습니다.` },
+        { status: 403 }
+      )
+    }
+
     // 트랜잭션 시작
     const { data, error } = await supabase.rpc('create_reservation_with_ticket_deduction', {
       p_slot_id: slotId,

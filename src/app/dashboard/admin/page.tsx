@@ -19,6 +19,14 @@ interface TicketStats {
   classSummary: { [key: string]: { students: number; tickets: number } }
 }
 
+interface DaySetting {
+  id: number
+  day_of_week: number
+  is_enabled: boolean
+  created_at: string
+  updated_at: string
+}
+
 function AdminDashboard() {
   const [accounts, setAccounts] = useState<Account[]>([])
   const [ticketStats, setTicketStats] = useState<TicketStats | null>(null)
@@ -41,6 +49,8 @@ function AdminDashboard() {
   const [selectedWeekView, setSelectedWeekView] = useState('')
   const [currentWeekStart, setCurrentWeekStart] = useState<Date>(new Date())
   const [teachers, setTeachers] = useState<Account[]>([])
+  const [daySettings, setDaySettings] = useState<DaySetting[]>([])
+  const [daySettingsLoading, setDaySettingsLoading] = useState(false)
 
   const fetchAccounts = useCallback(async () => {
     try {
@@ -91,6 +101,60 @@ function AdminDashboard() {
       classSummary
     })
   }
+
+  const fetchDaySettings = useCallback(async () => {
+    try {
+      setDaySettingsLoading(true)
+      const response = await fetch('/api/admin/day-settings')
+      const data = await response.json()
+      
+      if (data.success) {
+        setDaySettings(data.settings)
+      } else {
+        console.error('Failed to fetch day settings:', data.error)
+      }
+    } catch (error) {
+      console.error('Error fetching day settings:', error)
+    } finally {
+      setDaySettingsLoading(false)
+    }
+  }, [])
+
+  const toggleDaySetting = async (dayOfWeek: number, isEnabled: boolean) => {
+    try {
+      setDaySettingsLoading(true)
+      const response = await fetch('/api/admin/day-settings', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ dayOfWeek, isEnabled })
+      })
+
+      const data = await response.json()
+      
+      if (data.success) {
+        // UI 즉시 업데이트
+        setDaySettings(prev => prev.map(setting => 
+          setting.day_of_week === dayOfWeek 
+            ? { ...setting, is_enabled: isEnabled }
+            : setting
+        ))
+        alert(data.message)
+      } else {
+        alert('설정 변경에 실패했습니다: ' + data.error)
+      }
+    } catch (error) {
+      console.error('Error toggling day setting:', error)
+      alert('설정 변경 중 오류가 발생했습니다.')
+    } finally {
+      setDaySettingsLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchDaySettings()
+  }, [fetchDaySettings])
 
   const handleWeeklyIssue = async () => {
     try {
@@ -403,6 +467,100 @@ function AdminDashboard() {
             </div>
           </div>
         )}
+
+        {/* 요일별 예약 설정 */}
+        <div className="bg-white p-6 rounded-lg shadow mb-8">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h2 className="text-xl font-semibold text-gray-900 mb-1">요일별 예약 설정</h2>
+              <p className="text-sm text-gray-600">학생의 예약 가능 여부를 요일별로 제어합니다</p>
+            </div>
+            <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
+              <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+            </div>
+          </div>
+
+          {daySettingsLoading ? (
+            <div className="text-center py-8">
+              <div className="w-8 h-8 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mx-auto mb-2"></div>
+              <p className="text-gray-600">설정을 불러오는 중...</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
+              {daySettings.map((setting) => {
+                const dayNames = ['일요일', '월요일', '화요일', '수요일', '목요일', '금요일', '토요일']
+                const dayColors = [
+                  'bg-red-50 border-red-200 text-red-700',     // 일요일
+                  'bg-gray-50 border-gray-200 text-gray-700',   // 월요일
+                  'bg-gray-50 border-gray-200 text-gray-700',   // 화요일
+                  'bg-gray-50 border-gray-200 text-gray-700',   // 수요일
+                  'bg-gray-50 border-gray-200 text-gray-700',   // 목요일
+                  'bg-gray-50 border-gray-200 text-gray-700',   // 금요일
+                  'bg-blue-50 border-blue-200 text-blue-700'    // 토요일
+                ]
+                
+                return (
+                  <div
+                    key={setting.day_of_week}
+                    className={`p-4 border-2 rounded-xl transition-all duration-200 ${
+                      setting.is_enabled 
+                        ? dayColors[setting.day_of_week] 
+                        : 'bg-gray-100 border-gray-300 text-gray-500 opacity-75'
+                    }`}
+                  >
+                    <div className="text-center mb-3">
+                      <div className="text-sm font-semibold mb-1">
+                        {dayNames[setting.day_of_week]}
+                      </div>
+                      <div className={`text-xs px-2 py-1 rounded-full ${
+                        setting.is_enabled 
+                          ? 'bg-green-100 text-green-800' 
+                          : 'bg-red-100 text-red-800'
+                      }`}>
+                        {setting.is_enabled ? '예약 열기' : '예약 닫기'}
+                      </div>
+                    </div>
+                    
+                    {/* 토글 스위치 */}
+                    <button
+                      onClick={() => toggleDaySetting(setting.day_of_week, !setting.is_enabled)}
+                      disabled={daySettingsLoading}
+                      className={`relative w-full h-6 rounded-full transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 ${
+                        setting.is_enabled 
+                          ? 'bg-green-500' 
+                          : 'bg-gray-300'
+                      }`}
+                    >
+                      <div className={`absolute top-0.5 w-5 h-5 bg-white rounded-full transition-transform duration-200 ${
+                        setting.is_enabled 
+                          ? 'transform translate-x-[calc(100%-0.5rem)]' 
+                          : 'transform translate-x-0.5'
+                      }`} />
+                    </button>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+
+          <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <div className="flex items-start">
+              <svg className="w-5 h-5 text-blue-600 mr-3 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <div className="text-sm text-blue-800">
+                <p className="font-medium mb-1">사용 안내</p>
+                <ul className="list-disc list-inside space-y-1 text-blue-700">
+                  <li><strong>예약 열기</strong>: 학생들이 해당 요일에 예약할 수 있습니다</li>
+                  <li><strong>예약 닫기</strong>: 학생들이 해당 요일에 예약할 수 없습니다</li>
+                  <li>선생님의 슬롯 생성이나 관리에는 영향을 주지 않습니다</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
 
         {/* 관리 기능 */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
