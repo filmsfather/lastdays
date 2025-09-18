@@ -237,7 +237,22 @@ export default function StudentDashboard() {
       const data = await response.json()
       
       if (data.success) {
-        setReservations(data.reservations)
+        // 예약을 슬롯의 날짜와 시간순으로 정렬 (빠른 날짜/시간 먼저)
+        const sortedReservations = (data.reservations || []).sort((a: Reservation, b: Reservation) => {
+          // 1. 날짜 비교 (빠른 날짜 먼저)
+          const dateA = new Date(a.slot.date).getTime()
+          const dateB = new Date(b.slot.date).getTime()
+          if (dateA !== dateB) {
+            return dateA - dateB
+          }
+          
+          // 2. 같은 날짜면 시간 비교 (빠른 시간 먼저)
+          const timeA = a.slot.time_slot
+          const timeB = b.slot.time_slot
+          return timeA.localeCompare(timeB)
+        })
+        
+        setReservations(sortedReservations)
       }
     } catch (error) {
       console.error('예약 조회 실패:', error)

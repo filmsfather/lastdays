@@ -137,7 +137,6 @@ export async function GET(request: NextRequest) {
           class_name
         )
       `)
-      .order('created_at', { ascending: false })
 
     // 학생은 자신의 예약만, 관리자는 모든 예약 또는 특정 학생 예약 조회
     if (currentUser.role === 'student') {

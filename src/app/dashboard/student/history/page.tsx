@@ -6,6 +6,7 @@ import { redirect } from 'next/navigation'
 interface SessionHistory {
   id: number
   date: string
+  timeSlot: string
   sessionPeriod: string
   teacherName: string
   problemTitle: string
@@ -37,6 +38,13 @@ interface SessionData {
 // 세션 시간 변환 함수
 const getSessionPeriodTime = (period: string) => {
   return period === 'AM' ? '오전' : '오후'
+}
+
+// 시간 포맷팅 함수 (초 제거)
+const formatTimeSlot = (timeSlot: string) => {
+  if (!timeSlot) return ''
+  // "10:00:00" -> "10:00"
+  return timeSlot.substring(0, 5)
 }
 
 
@@ -127,6 +135,7 @@ export default async function StudentHistoryPage({ searchParams }: Props) {
         student_id,
         slot:slot_id (
           date,
+          time_slot,
           session_period,
           teacher:teacher_id (
             name
@@ -145,7 +154,6 @@ export default async function StudentHistoryPage({ searchParams }: Props) {
     `)
     .in('reservation_id', reservationIds)
     .eq('status', 'completed')
-    .order('completed_at', { ascending: false })
     .limit(50)
 
   if (error) {
@@ -172,12 +180,26 @@ export default async function StudentHistoryPage({ searchParams }: Props) {
     return {
       id: session.id,
       date: session.reservation?.slot?.date,
+      timeSlot: session.reservation?.slot?.time_slot,
       sessionPeriod: session.reservation?.slot?.session_period,
       teacherName: session.reservation?.slot?.teacher?.name,
       problemTitle: session.problem?.title,
       finalScore: scoreDisplay,
       completedAt: session.completed_at
     }
+  }).sort((a, b) => {
+    // 최신 날짜/시간이 맨 위로 오도록 정렬 (내림차순)
+    // 1. 날짜 비교 (최신 날짜 먼저)
+    const dateA = new Date(a.date).getTime()
+    const dateB = new Date(b.date).getTime()
+    if (dateA !== dateB) {
+      return dateB - dateA
+    }
+    
+    // 2. 같은 날짜면 시간 비교 (최신 시간 먼저)
+    const timeA = a.timeSlot
+    const timeB = b.timeSlot
+    return timeB.localeCompare(timeA)
   })
 
   return (
@@ -225,7 +247,7 @@ export default async function StudentHistoryPage({ searchParams }: Props) {
                       날짜
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      시간대
+                      시간
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       교사명
@@ -251,7 +273,7 @@ export default async function StudentHistoryPage({ searchParams }: Props) {
                         {formatDate(session.date)}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {getSessionPeriodTime(session.sessionPeriod)}
+                        {formatTimeSlot(session.timeSlot)}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                         {session.teacherName} 선생님
