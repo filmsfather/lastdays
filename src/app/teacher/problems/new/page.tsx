@@ -181,7 +181,7 @@ export default function NewProblemPage() {
                     onChange={handleInputChange}
                     required
                     min="1"
-                    max="60"
+                    max="240"
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     placeholder="10"
                   />
@@ -189,7 +189,7 @@ export default function NewProblemPage() {
                     <span className="text-gray-500 text-sm">분</span>
                   </div>
                 </div>
-                <p className="mt-1 text-xs text-gray-500">면접 시작 전 문제를 볼 수 있는 시간 (1~60분)</p>
+                <p className="mt-1 text-xs text-gray-500">면접 시작 전 문제를 볼 수 있는 시간 (1~240분)</p>
               </div>
 
               <div>

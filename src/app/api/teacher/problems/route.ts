@@ -68,9 +68,9 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    if (!preview_lead_time || preview_lead_time < 1 || preview_lead_time > 60) {
+    if (!preview_lead_time || preview_lead_time < 1 || preview_lead_time > 240) {
       return NextResponse.json(
-        { error: '사전열람 시간은 1-60분 사이의 값이어야 합니다.' },
+        { error: '사전열람 시간은 1-240분 사이의 값이어야 합니다.' },
         { status: 400 }
       )
     }

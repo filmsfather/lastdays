@@ -34,6 +34,7 @@ export default function TimeslotManagement() {
   const [selectedTeacher, setSelectedTeacher] = useState('')
   const [loading, setLoading] = useState(false)
   const [currentWeekStart, setCurrentWeekStart] = useState<Date>(new Date())
+  const [selectedSlots, setSelectedSlots] = useState<Set<number>>(new Set())
   
   // 슬롯 생성 모달
   const [createModal, setCreateModal] = useState<CreateSlotModal>({
@@ -195,6 +196,42 @@ export default function TimeslotManagement() {
     } catch (error) {
       console.error('타임슬롯 삭제 실패:', error)
       toast.error('삭제 중 오류가 발생했습니다.')
+    }
+  }
+
+  const deleteSelectedSlots = async () => {
+    const slotsToDelete = timeSlots.filter(slot => selectedSlots.has(slot.id))
+    const slotsWithReservations = slotsToDelete.filter(slot => slot.current_reservations > 0)
+    
+    if (slotsWithReservations.length > 0) {
+      toast.error('예약이 있는 슬롯은 삭제할 수 없습니다.')
+      return
+    }
+
+    if (slotsToDelete.length === 0) {
+      toast.error('삭제할 슬롯을 선택해주세요.')
+      return
+    }
+
+    if (!confirm(`선택한 ${slotsToDelete.length}개 슬롯을 삭제하시겠습니까?`)) return
+
+    try {
+      const deletePromises = slotsToDelete.map(slot =>
+        fetch(
+          `/api/admin/slots/manage-timeslots?date=${slot.date}&time_slot=${slot.time_slot}&teacher_id=${slot.teacher_id}`,
+          { method: 'DELETE' }
+        )
+      )
+
+      await Promise.all(deletePromises)
+      toast.success(`${slotsToDelete.length}개 슬롯이 삭제되었습니다.`)
+      setSelectedSlots(new Set())
+      if (selectedTeacher) {
+        fetchWeekSlots(selectedTeacher)
+      }
+    } catch (error) {
+      console.error('일괄 삭제 실패:', error)
+      toast.error('일괄 삭제 중 오류가 발생했습니다.')
     }
   }
 
@@ -471,6 +508,29 @@ export default function TimeslotManagement() {
                 </button>
               </div>
 
+              {/* 일괄 삭제 컨트롤 */}
+              {selectedSlots.size > 0 && (
+                <div className="flex items-center justify-between mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+                  <span className="text-sm text-red-700">
+                    {selectedSlots.size}개 슬롯 선택됨
+                  </span>
+                  <div className="flex space-x-2">
+                    <button
+                      onClick={() => setSelectedSlots(new Set())}
+                      className="px-3 py-1 text-xs bg-white text-gray-700 border border-gray-300 rounded hover:bg-gray-50"
+                    >
+                      선택 해제
+                    </button>
+                    <button
+                      onClick={deleteSelectedSlots}
+                      className="px-3 py-1 text-xs bg-red-600 text-white rounded hover:bg-red-700"
+                    >
+                      선택 삭제
+                    </button>
+                  </div>
+                </div>
+              )}
+
               {/* 주간 캘린더 헤더 */}
               <div className="grid grid-cols-7 gap-1 mb-4">
                 {['월', '화', '수', '목', '금', '토', '일'].map((day) => (
@@ -532,8 +592,24 @@ export default function TimeslotManagement() {
                                     'bg-green-100 text-green-800'
                                   }`}
                                 >
-                                  <div className="font-medium">
-                                    {formatTimeSlot(slot.time_slot)}
+                                  <div className="flex justify-between items-center">
+                                    <div className="font-medium">
+                                      {formatTimeSlot(slot.time_slot)}
+                                    </div>
+                                    <input
+                                      type="checkbox"
+                                      checked={selectedSlots.has(slot.id)}
+                                      onChange={(e) => {
+                                        const newSelected = new Set(selectedSlots)
+                                        if (e.target.checked) {
+                                          newSelected.add(slot.id)
+                                        } else {
+                                          newSelected.delete(slot.id)
+                                        }
+                                        setSelectedSlots(newSelected)
+                                      }}
+                                      className="w-3 h-3"
+                                    />
                                   </div>
                                   <div className="flex justify-between items-center mt-1">
                                     <span>{slot.current_reservations}/{slot.max_capacity}</span>
@@ -598,8 +674,24 @@ export default function TimeslotManagement() {
                                     'bg-green-100 text-green-800'
                                   }`}
                                 >
-                                  <div className="font-medium">
-                                    {formatTimeSlot(slot.time_slot)}
+                                  <div className="flex justify-between items-center">
+                                    <div className="font-medium">
+                                      {formatTimeSlot(slot.time_slot)}
+                                    </div>
+                                    <input
+                                      type="checkbox"
+                                      checked={selectedSlots.has(slot.id)}
+                                      onChange={(e) => {
+                                        const newSelected = new Set(selectedSlots)
+                                        if (e.target.checked) {
+                                          newSelected.add(slot.id)
+                                        } else {
+                                          newSelected.delete(slot.id)
+                                        }
+                                        setSelectedSlots(newSelected)
+                                      }}
+                                      className="w-3 h-3"
+                                    />
                                   </div>
                                   <div className="flex justify-between items-center mt-1">
                                     <span>{slot.current_reservations}/{slot.max_capacity}</span>

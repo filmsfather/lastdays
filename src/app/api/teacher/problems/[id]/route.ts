@@ -134,9 +134,9 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     }
     if (subject_area !== undefined) updateData.subject_area = subject_area
     if (preview_lead_time !== undefined) {
-      if (preview_lead_time < 0) {
+      if (preview_lead_time < 0 || preview_lead_time > 240) {
         return NextResponse.json(
-          { error: '사전열람 시간은 0 이상이어야 합니다.' },
+          { error: '사전열람 시간은 0~240분 범위여야 합니다.' },
           { status: 400 }
         )
       }
