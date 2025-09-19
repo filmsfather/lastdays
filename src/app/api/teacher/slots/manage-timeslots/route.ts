@@ -2,6 +2,74 @@ import { NextRequest, NextResponse } from 'next/server'
 import { withTeacherOrAdmin } from '@/lib/middleware'
 import { supabase } from '@/lib/supabase'
 
+// 타임슬롯 삭제 API (선생님/관리자용)
+export const DELETE = withTeacherOrAdmin(async (request) => {
+  try {
+    const { searchParams } = new URL(request.url)
+    const date = searchParams.get('date')
+    const timeSlot = searchParams.get('time_slot')
+    const teacherId = searchParams.get('teacher_id')
+
+    if (!date || !timeSlot || !teacherId) {
+      return NextResponse.json(
+        { error: '날짜, 시간, 교사 ID가 필요합니다.' },
+        { status: 400 }
+      )
+    }
+
+    // 선생님은 자신의 스케줄만 삭제 가능
+    if (request.user?.role === 'teacher' && parseInt(teacherId) !== request.user.id) {
+      return NextResponse.json(
+        { error: '자신의 스케줄만 삭제할 수 있습니다.' },
+        { status: 403 }
+      )
+    }
+
+    // PostgreSQL 함수 호출로 타임슬롯 삭제
+    const { data: result, error } = await supabase
+      .rpc('remove_time_slot', {
+        p_date: date,
+        p_time_slot: timeSlot,
+        p_teacher_id: parseInt(teacherId)
+      })
+
+    if (error) {
+      console.error('Error removing time slot:', error)
+      
+      if (error.message.includes('cannot_delete_slot_with_reservations')) {
+        return NextResponse.json(
+          { error: '예약이 있는 슬롯은 삭제할 수 없습니다.' },
+          { status: 400 }
+        )
+      }
+      
+      return NextResponse.json(
+        { error: '타임슬롯 삭제 중 오류가 발생했습니다.' },
+        { status: 500 }
+      )
+    }
+
+    if (!result) {
+      return NextResponse.json(
+        { error: '삭제할 슬롯을 찾을 수 없습니다.' },
+        { status: 404 }
+      )
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: '타임슬롯이 삭제되었습니다.'
+    })
+
+  } catch (error) {
+    console.error('Delete timeslot error:', error)
+    return NextResponse.json(
+      { error: '서버 오류가 발생했습니다.' },
+      { status: 500 }
+    )
+  }
+})
+
 // 쉬는시간 설정/해제 API (선생님/관리자용)
 export const PATCH = withTeacherOrAdmin(async (request) => {
   try {
