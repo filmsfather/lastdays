@@ -577,7 +577,7 @@ export default function TimeslotManagement() {
                               + 생성
                             </button>
                           </div>
-                          <div className="space-y-1 max-h-32 overflow-y-auto">
+                          <div className="space-y-1 max-h-40 overflow-y-auto">
                             {daySlots.AM.length === 0 ? (
                               <div className="text-xs text-gray-400 text-center py-2">
                                 슬롯 없음
@@ -592,10 +592,7 @@ export default function TimeslotManagement() {
                                     'bg-green-100 text-green-800'
                                   }`}
                                 >
-                                  <div className="flex justify-between items-center">
-                                    <div className="font-medium">
-                                      {formatTimeSlot(slot.time_slot)}
-                                    </div>
+                                  <div className="flex items-center space-x-2">
                                     <input
                                       type="checkbox"
                                       checked={selectedSlots.has(slot.id)}
@@ -608,8 +605,11 @@ export default function TimeslotManagement() {
                                         }
                                         setSelectedSlots(newSelected)
                                       }}
-                                      className="w-3 h-3"
+                                      className="w-3 h-3 flex-shrink-0"
                                     />
+                                    <div className="font-medium flex-1">
+                                      {formatTimeSlot(slot.time_slot)}
+                                    </div>
                                   </div>
                                   <div className="flex justify-between items-center mt-1">
                                     <span>{slot.current_reservations}/{slot.max_capacity}</span>
@@ -659,7 +659,7 @@ export default function TimeslotManagement() {
                               + 생성
                             </button>
                           </div>
-                          <div className="space-y-1 max-h-32 overflow-y-auto">
+                          <div className="space-y-1 max-h-40 overflow-y-auto">
                             {daySlots.PM.length === 0 ? (
                               <div className="text-xs text-gray-400 text-center py-2">
                                 슬롯 없음
@@ -674,10 +674,7 @@ export default function TimeslotManagement() {
                                     'bg-green-100 text-green-800'
                                   }`}
                                 >
-                                  <div className="flex justify-between items-center">
-                                    <div className="font-medium">
-                                      {formatTimeSlot(slot.time_slot)}
-                                    </div>
+                                  <div className="flex items-center space-x-2">
                                     <input
                                       type="checkbox"
                                       checked={selectedSlots.has(slot.id)}
@@ -690,8 +687,11 @@ export default function TimeslotManagement() {
                                         }
                                         setSelectedSlots(newSelected)
                                       }}
-                                      className="w-3 h-3"
+                                      className="w-3 h-3 flex-shrink-0"
                                     />
+                                    <div className="font-medium flex-1">
+                                      {formatTimeSlot(slot.time_slot)}
+                                    </div>
                                   </div>
                                   <div className="flex justify-between items-center mt-1">
                                     <span>{slot.current_reservations}/{slot.max_capacity}</span>
