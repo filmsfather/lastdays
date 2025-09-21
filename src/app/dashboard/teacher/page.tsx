@@ -110,7 +110,11 @@ export default function TeacherDashboardPage() {
       const data = await response.json()
       
       if (data.success) {
-        setProblems(data.problems)
+        // 공개날짜 기준으로 내림차순 정렬 (최신이 위, 오래된 것이 아래)
+        const sortedProblems = data.problems.sort((a: Problem, b: Problem) => {
+          return new Date(b.available_date).getTime() - new Date(a.available_date).getTime()
+        })
+        setProblems(sortedProblems)
       }
     } catch (error) {
       console.error('문제 조회 실패:', error)
