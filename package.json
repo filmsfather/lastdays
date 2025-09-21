@@ -22,6 +22,7 @@
     "@types/react": "^19.1.12",
     "@types/react-dom": "^19.1.9",
     "autoprefixer": "^10.4.16",
+    "date-fns-tz": "^3.2.0",
     "eslint": "^9.35.0",
     "eslint-config-next": "^15.5.2",
     "next": "^15.5.2",

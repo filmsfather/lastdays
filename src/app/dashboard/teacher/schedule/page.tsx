@@ -71,8 +71,9 @@ export default function TeacherSchedulePage() {
 
   // 주간 시작일 계산 (월요일 기준, 한국 시간 기준)
   const getWeekStart = (date?: Date) => {
-    const koreanToday = date ? toKoreanDateString(date) : getKoreanDate().toISOString().split('T')[0]
-    const [year, month, day] = koreanToday.split('-').map(Number)
+    const targetDate = date || getKoreanDate()
+    const koreanDateString = toKoreanDateString(targetDate)
+    const [year, month, day] = koreanDateString.split('-').map(Number)
     const koreanDate = new Date(year, month - 1, day)
     
     const dayOfWeek = koreanDate.getDay()

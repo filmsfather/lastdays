@@ -1,13 +1,18 @@
+import { toZonedTime, fromZonedTime, format } from 'date-fns-tz'
+
 /**
  * 한국 시간대(KST) 기준 날짜/시간 처리 유틸리티
  * 모든 날짜 관련 처리를 Asia/Seoul 타임존으로 통일
+ * date-fns-tz를 사용하여 정확한 시간대 처리
  */
+
+const KOREA_TIMEZONE = 'Asia/Seoul'
 
 /**
  * 현재 한국 시간을 Date 객체로 반환
  */
 export const getKoreanDate = (): Date => {
-  return new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Seoul' }))
+  return toZonedTime(new Date(), KOREA_TIMEZONE)
 }
 
 /**
@@ -15,15 +20,16 @@ export const getKoreanDate = (): Date => {
  * DB의 DATE 타입과 비교할 때 사용
  */
 export const getKoreanDateString = (): string => {
-  return getKoreanDate().toISOString().split('T')[0]
+  const koreanTime = toZonedTime(new Date(), KOREA_TIMEZONE)
+  return format(koreanTime, 'yyyy-MM-dd')
 }
 
 /**
  * 한국 시간 기준으로 특정 날짜를 YYYY-MM-DD 형식으로 변환
  */
 export const toKoreanDateString = (date: Date): string => {
-  const koreanDate = new Date(date.toLocaleString('en-US', { timeZone: 'Asia/Seoul' }))
-  return koreanDate.toISOString().split('T')[0]
+  const koreanTime = toZonedTime(date, KOREA_TIMEZONE)
+  return format(koreanTime, 'yyyy-MM-dd')
 }
 
 /**
@@ -31,38 +37,24 @@ export const toKoreanDateString = (date: Date): string => {
  * DB의 TIMESTAMP WITH TIME ZONE 표시용
  */
 export const formatKoreanDate = (timestamp: string): string => {
-  return new Date(timestamp).toLocaleDateString('ko-KR', { 
-    timeZone: 'Asia/Seoul',
-    year: 'numeric',
-    month: 'long', 
-    day: 'numeric'
-  })
+  const koreanTime = toZonedTime(new Date(timestamp), KOREA_TIMEZONE)
+  return format(koreanTime, 'yyyy년 MM월 dd일')
 }
 
 /**
  * ISO 문자열을 한국 시간대 기준 날짜/시간으로 포맷팅
  */
 export const formatKoreanDateTime = (timestamp: string): string => {
-  return new Date(timestamp).toLocaleString('ko-KR', { 
-    timeZone: 'Asia/Seoul',
-    year: 'numeric',
-    month: 'long', 
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit'
-  })
+  const koreanTime = toZonedTime(new Date(timestamp), KOREA_TIMEZONE)
+  return format(koreanTime, 'yyyy년 MM월 dd일 HH:mm')
 }
 
 /**
  * 시간만 표시 (HH:MM 형식)
  */
 export const formatKoreanTime = (timestamp: string): string => {
-  return new Date(timestamp).toLocaleTimeString('ko-KR', { 
-    timeZone: 'Asia/Seoul',
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false
-  })
+  const koreanTime = toZonedTime(new Date(timestamp), KOREA_TIMEZONE)
+  return format(koreanTime, 'HH:mm')
 }
 
 /**
@@ -89,9 +81,13 @@ export const getDaysDifference = (date1: Date | string, date2: Date | string): n
   const d1 = typeof date1 === 'string' ? new Date(date1) : date1
   const d2 = typeof date2 === 'string' ? new Date(date2) : date2
   
-  const koreanDate1 = new Date(d1.toLocaleString('en-US', { timeZone: 'Asia/Seoul' }))
-  const koreanDate2 = new Date(d2.toLocaleString('en-US', { timeZone: 'Asia/Seoul' }))
+  const koreanDate1 = toZonedTime(d1, KOREA_TIMEZONE)
+  const koreanDate2 = toZonedTime(d2, KOREA_TIMEZONE)
   
-  const timeDiff = koreanDate2.getTime() - koreanDate1.getTime()
+  // 시간 부분을 제거하고 날짜만 비교
+  const date1Only = new Date(koreanDate1.getFullYear(), koreanDate1.getMonth(), koreanDate1.getDate())
+  const date2Only = new Date(koreanDate2.getFullYear(), koreanDate2.getMonth(), koreanDate2.getDate())
+  
+  const timeDiff = date2Only.getTime() - date1Only.getTime()
   return Math.floor(timeDiff / (1000 * 60 * 60 * 24))
 }
