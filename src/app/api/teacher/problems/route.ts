@@ -16,7 +16,6 @@ export async function GET(req: NextRequest) {
     const { data: problems, error } = await supabase
       .from('problems')
       .select('*')
-      .eq('created_by', user.id)
       .order('created_at', { ascending: false })
 
     if (error) {
