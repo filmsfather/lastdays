@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { withAuth } from '@/lib/withAuth'
+import { getKoreanDate, toKoreanDateString } from '@/lib/dateUtils'
 
 interface Account {
   id: string
@@ -282,16 +283,21 @@ function AdminDashboard() {
   }
 
   const getTodayDate = () => {
-    const now = new Date()
-    return now.toISOString().split('T')[0]
+    return getKoreanDate().toISOString().split('T')[0]
   }
 
-  // 주간 시작일 계산 (월요일 기준)
-  const getWeekStart = (date: Date) => {
-    const d = new Date(date)
-    const day = d.getDay()
-    const diff = d.getDate() - day + (day === 0 ? -6 : 1)
-    return new Date(d.setDate(diff))
+  // 주간 시작일 계산 (월요일 기준, 한국 시간 기준)
+  const getWeekStart = (date?: Date) => {
+    const koreanToday = date ? toKoreanDateString(date) : getKoreanDate().toISOString().split('T')[0]
+    const [year, month, day] = koreanToday.split('-').map(Number)
+    const koreanDate = new Date(year, month - 1, day)
+    
+    const dayOfWeek = koreanDate.getDay()
+    const diff = koreanDate.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1)
+    
+    const weekStart = new Date(koreanDate)
+    weekStart.setDate(diff)
+    return weekStart
   }
 
   // 주간 날짜 배열 생성

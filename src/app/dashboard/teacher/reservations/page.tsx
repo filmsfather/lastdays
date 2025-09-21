@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { toast } from 'react-hot-toast'
 import Link from 'next/link'
+import { getKoreanDate, toKoreanDateString } from '@/lib/dateUtils'
 
 interface User {
   id: number
@@ -82,12 +83,12 @@ export default function TeacherReservationsPage() {
     setLoading(true)
     try {
       // 선택한 요일의 날짜 계산 (이번 주 기준)
-      const today = new Date()
+      const today = getKoreanDate()
       const currentDay = today.getDay()
       const diff = selectedDay - currentDay
       const targetDate = new Date(today)
       targetDate.setDate(today.getDate() + diff)
-      const targetDateString = targetDate.toISOString().split('T')[0]
+      const targetDateString = toKoreanDateString(targetDate)
 
       // 새로운 예약 현황 API 호출
       const response = await fetch(`/api/teacher/reservations/schedule?date=${targetDateString}`, {
