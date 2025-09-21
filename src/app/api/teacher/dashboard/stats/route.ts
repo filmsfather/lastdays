@@ -72,21 +72,18 @@ export async function GET() {
       // 전체 문제 수
       supabase
         .from('problems')
-        .select('id', { count: 'exact', head: true })
-        .eq('created_by', user.id),
+        .select('id', { count: 'exact', head: true }),
       
       // 공개 문제 수
       supabase
         .from('problems')
         .select('id', { count: 'exact', head: true })
-        .eq('created_by', user.id)
         .eq('status', 'published'),
       
       // 비공개 문제 수
       supabase
         .from('problems')
         .select('id', { count: 'exact', head: true })
-        .eq('created_by', user.id)
         .in('status', ['draft', 'archived']),
       
       // 문제 사용 총 횟수

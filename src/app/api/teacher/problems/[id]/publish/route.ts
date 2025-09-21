@@ -22,12 +22,11 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       )
     }
 
-    // 문제 소유권 및 상태 확인
+    // 문제 존재 및 상태 확인
     const { data: existingProblem, error: checkError } = await supabase
       .from('problems')
       .select('id, status, title, content, created_by')
       .eq('id', problemId)
-      .eq('created_by', user.id)
       .single()
 
     if (checkError || !existingProblem) {
@@ -86,7 +85,6 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       .from('problems')
       .update(updateData)
       .eq('id', problemId)
-      .eq('created_by', user.id)
       .select()
       .single()
 
