@@ -30,13 +30,32 @@ CREATE OR REPLACE FUNCTION create_essay_reservation(
 DECLARE
     first_reservation_id INTEGER;
     second_reservation_id INTEGER;
+    v_current_reservations INTEGER;
+    v_reservation_date DATE;
 BEGIN
     -- 1. 학생 티켓 확인 (2장 이상 필요)
     IF (SELECT current_tickets FROM accounts WHERE id = p_student_id) < 2 THEN
         RAISE EXCEPTION 'insufficient_tickets';
     END IF;
 
-    -- 2. 두 슬롯 모두 예약 가능한지 확인
+    -- 2. 일일 예약 제한 확인 (현재 활성 예약 + 작법 예약 2개가 3개 초과하면 안됨)
+    SELECT date INTO v_reservation_date
+    FROM reservation_slots 
+    WHERE id = p_first_slot_id;
+    
+    SELECT COUNT(*)
+    INTO v_current_reservations
+    FROM reservations r
+    JOIN reservation_slots rs ON r.slot_id = rs.id
+    WHERE r.student_id = p_student_id 
+      AND rs.date = v_reservation_date
+      AND r.status = 'active';
+    
+    IF v_current_reservations + 2 > 3 THEN
+        RAISE EXCEPTION 'daily_limit_exceeded';
+    END IF;
+
+    -- 3. 두 슬롯 모두 예약 가능한지 확인
     IF EXISTS (
         SELECT 1 FROM reservation_slots 
         WHERE id IN (p_first_slot_id, p_second_slot_id)
@@ -45,27 +64,27 @@ BEGIN
         RAISE EXCEPTION 'slot_full';
     END IF;
 
-    -- 3. 첫 번째 예약 생성
+    -- 4. 첫 번째 예약 생성
     INSERT INTO reservations (student_id, slot_id, type, essay_group_id, status)
     VALUES (p_student_id, p_first_slot_id, 'essay', p_essay_group_id, 'active')
     RETURNING id INTO first_reservation_id;
 
-    -- 4. 두 번째 예약 생성
+    -- 5. 두 번째 예약 생성
     INSERT INTO reservations (student_id, slot_id, type, essay_group_id, status)
     VALUES (p_student_id, p_second_slot_id, 'essay', p_essay_group_id, 'active')
     RETURNING id INTO second_reservation_id;
 
-    -- 5. 슬롯 예약 카운트 증가
+    -- 6. 슬롯 예약 카운트 증가
     UPDATE reservation_slots
     SET current_reservations = current_reservations + 1
     WHERE id IN (p_first_slot_id, p_second_slot_id);
 
-    -- 6. 학생 티켓 2장 차감
+    -- 7. 학생 티켓 2장 차감
     UPDATE accounts
     SET current_tickets = current_tickets - 2
     WHERE id = p_student_id;
 
-    -- 7. 결과 반환
+    -- 8. 결과 반환
     RETURN QUERY 
     SELECT first_reservation_id, p_first_slot_id
     UNION ALL

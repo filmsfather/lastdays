@@ -275,6 +275,12 @@ export default function TeacherDashboardPage() {
               >
                 학생 관리
               </Link>
+              <Link 
+                href="/dashboard/teacher/reservations"
+                className="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors"
+              >
+                예약 현황
+              </Link>
             </div>
           </div>
         </div>
@@ -381,11 +387,18 @@ export default function TeacherDashboardPage() {
                       <p className="text-sm text-orange-800 mt-2">문제 관리</p>
                     </button>
                     <Link
-                      href="/hall-of-fame"
+                      href="/dashboard/teacher/reservations"
                       className="p-4 bg-yellow-50 rounded-lg hover:bg-yellow-100 transition-colors text-center"
                     >
-                      <div className="text-yellow-600 font-medium">🏆</div>
-                      <p className="text-sm text-yellow-800 mt-2">명예의 전당</p>
+                      <div className="text-yellow-600 font-medium">📋</div>
+                      <p className="text-sm text-yellow-800 mt-2">예약 현황</p>
+                    </Link>
+                    <Link
+                      href="/hall-of-fame"
+                      className="p-4 bg-red-50 rounded-lg hover:bg-red-100 transition-colors text-center"
+                    >
+                      <div className="text-red-600 font-medium">🏆</div>
+                      <p className="text-sm text-red-800 mt-2">명예의 전당</p>
                     </Link>
                     <Link
                       href="/dashboard/admin"
