@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getCurrentUser } from '@/lib/auth'
 import { supabase } from '@/lib/supabase'
+import { getKoreanDateString } from '@/lib/dateUtils'
 
 // 예약 가능한 슬롯 조회 API
 export async function GET(req: NextRequest) {
@@ -26,8 +27,8 @@ export async function GET(req: NextRequest) {
     const fromDate = searchParams.get('from')
     const toDate = searchParams.get('to')
     
-    // 날짜 범위가 지정되지 않은 경우 현재 날짜부터 조회
-    const startDate = fromDate || new Date().toISOString().split('T')[0]
+    // 날짜 범위가 지정되지 않은 경우 현재 한국 날짜부터 조회
+    const startDate = fromDate || getKoreanDateString()
     const endDate = toDate || null
 
     // reservation_slots 테이블에서 예약 가능한 슬롯 조회 (타임슬롯 시스템)

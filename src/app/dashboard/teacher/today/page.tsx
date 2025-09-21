@@ -2,6 +2,7 @@ import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@supabase/supabase-js'
+import { getKoreanDateString, getKoreanDate } from '@/lib/dateUtils'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -104,9 +105,7 @@ async function getCurrentUser(): Promise<User | null> {
 async function getTodaySchedule(teacherId: number): Promise<TodaySlot[]> {
   try {
     // 오늘 날짜 (KST 기준)
-    const today = new Date()
-    today.setHours(today.getHours() + 9) // UTC to KST
-    const todayString = today.toISOString().split('T')[0]
+    const todayString = getKoreanDateString()
 
     // 교사의 당일 슬롯 조회
     const { data: slots, error: slotsError } = await supabase
@@ -184,7 +183,8 @@ export default async function TeacherTodayPage() {
   }
 
   const todaySlots = await getTodaySchedule(user.id)
-  const today = new Date().toLocaleDateString('ko-KR', {
+  const today = getKoreanDate().toLocaleDateString('ko-KR', {
+    timeZone: 'Asia/Seoul',
     year: 'numeric',
     month: 'long',
     day: 'numeric',

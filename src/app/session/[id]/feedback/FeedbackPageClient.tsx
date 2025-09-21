@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import { toast } from 'react-hot-toast'
 import Link from 'next/link'
+import { formatKoreanDate, formatKoreanDateTime } from '@/lib/dateUtils'
 
 interface FeedbackPageProps {
   isHallOfFameMode?: boolean
@@ -76,6 +77,7 @@ const getSessionPeriodTime = (period: string) => {
 const formatDate = (dateString: string) => {
   const date = new Date(dateString)
   return date.toLocaleDateString('ko-KR', {
+    timeZone: 'Asia/Seoul',
     year: 'numeric',
     month: 'long',
     day: 'numeric',
@@ -597,7 +599,7 @@ export default function FeedbackPageClient({ sessionData: initialSessionData, cu
                         {feedback.feedback_type}
                       </span>
                       <span className="text-xs text-gray-500">
-                        {new Date(feedback.created_at).toLocaleDateString('ko-KR')}
+                        {formatKoreanDate(feedback.created_at)}
                       </span>
                     </div>
                     <p className="text-gray-800 whitespace-pre-wrap">
@@ -706,7 +708,7 @@ export default function FeedbackPageClient({ sessionData: initialSessionData, cu
                       {sessionData.studentReflection.text}
                     </p>
                     <p className="text-xs text-gray-500 mt-2">
-                      작성일: {new Date(sessionData.studentReflection.updated_at).toLocaleDateString('ko-KR')}
+                      작성일: {formatKoreanDate(sessionData.studentReflection.updated_at)}
                     </p>
                   </div>
                   
@@ -750,7 +752,7 @@ export default function FeedbackPageClient({ sessionData: initialSessionData, cu
                   {sessionData.studentReflection.text}
                 </p>
                 <p className="text-xs text-gray-500 mt-2">
-                  작성일: {new Date(sessionData.studentReflection.updated_at).toLocaleDateString('ko-KR')}
+                  작성일: {formatKoreanDate(sessionData.studentReflection.updated_at)}
                 </p>
               </div>
             ) : (

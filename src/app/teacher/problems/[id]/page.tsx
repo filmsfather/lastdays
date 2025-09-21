@@ -271,6 +271,7 @@ export default function ProblemDetailPage({ params }: Props) {
 
   const formatAvailableDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('ko-KR', {
+      timeZone: 'Asia/Seoul',
       year: 'numeric',
       month: 'long',
       day: 'numeric',
@@ -280,6 +281,7 @@ export default function ProblemDetailPage({ params }: Props) {
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('ko-KR', {
+      timeZone: 'Asia/Seoul',
       year: 'numeric',
       month: 'long',
       day: 'numeric',
