@@ -35,7 +35,7 @@ export default function ProblemDetailPage({ params }: Props) {
   const [editData, setEditData] = useState({
     title: '',
     content: '',
-    limit_minutes: 60,
+    preview_lead_time: 30,
     available_date: ''
   })
   const [saving, setSaving] = useState(false)
@@ -72,7 +72,7 @@ export default function ProblemDetailPage({ params }: Props) {
         setEditData({
           title: data.problem.title,
           content: data.problem.content,
-          limit_minutes: data.problem.limit_minutes,
+          preview_lead_time: data.problem.preview_lead_time,
           available_date: data.problem.available_date
         })
         // 이미지 데이터 초기화
@@ -126,7 +126,7 @@ export default function ProblemDetailPage({ params }: Props) {
     setEditData({
       title: problem.title,
       content: problem.content,
-      limit_minutes: problem.limit_minutes,
+      preview_lead_time: problem.preview_lead_time,
       available_date: problem.available_date
     })
     if (problem.images) {
@@ -141,7 +141,7 @@ export default function ProblemDetailPage({ params }: Props) {
     setEditData({
       title: problem.title,
       content: problem.content,
-      limit_minutes: problem.limit_minutes,
+      preview_lead_time: problem.preview_lead_time,
       available_date: problem.available_date
     })
     if (problem.images) {
@@ -163,7 +163,7 @@ export default function ProblemDetailPage({ params }: Props) {
         body: JSON.stringify({
           title: editData.title,
           content: editData.content,
-          limit_minutes: editData.limit_minutes,
+          preview_lead_time: editData.preview_lead_time,
           available_date: editData.available_date,
           images: editImages
         }),
@@ -195,7 +195,7 @@ export default function ProblemDetailPage({ params }: Props) {
     const { name, value } = e.target
     setEditData({
       ...editData,
-      [name]: name === 'limit_minutes' ? parseInt(value) || 0 : value
+      [name]: name === 'preview_lead_time' ? parseInt(value) || 0 : value
     })
   }
 
@@ -437,22 +437,22 @@ export default function ProblemDetailPage({ params }: Props) {
                   />
                 </div>
 
-                {/* 제한시간 및 공개날짜 수정 */}
+                {/* 사전열람시간 및 공개날짜 수정 */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label htmlFor="edit-limit-minutes" className="block text-sm font-medium text-gray-700 mb-1">
-                      제한시간 *
+                    <label htmlFor="edit-preview-lead-time" className="block text-sm font-medium text-gray-700 mb-1">
+                      사전열람시간 *
                     </label>
                     <div className="relative">
                       <input
                         type="number"
-                        id="edit-limit-minutes"
-                        name="limit_minutes"
-                        value={editData.limit_minutes}
+                        id="edit-preview-lead-time"
+                        name="preview_lead_time"
+                        value={editData.preview_lead_time}
                         onChange={handleEditInputChange}
                         required
-                        min="1"
-                        max="300"
+                        min="0"
+                        max="240"
                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                       />
                       <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
