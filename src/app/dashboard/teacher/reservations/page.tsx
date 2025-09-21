@@ -86,8 +86,10 @@ export default function TeacherReservationsPage() {
       const today = getKoreanDate()
       const currentDay = today.getDay()
       const diff = selectedDay - currentDay
-      const targetDate = new Date(today)
-      targetDate.setDate(today.getDate() + diff)
+      
+      // 날짜 계산을 밀리초 단위로 수행하여 시간대 오차 방지
+      const targetTimeMs = today.getTime() + (diff * 24 * 60 * 60 * 1000)
+      const targetDate = new Date(targetTimeMs)
       const targetDateString = toKoreanDateString(targetDate)
 
       // 새로운 예약 현황 API 호출

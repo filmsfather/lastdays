@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { toast } from 'react-hot-toast'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import { getKoreanDate, toKoreanDateString } from '@/lib/dateUtils'
 
 interface User {
   id: number
@@ -131,9 +132,10 @@ export default function StudentDashboard() {
 
   // 한국 시간 기준으로 주간 시작일 계산
   const getWeekStart = (date?: Date) => {
-    // 한국 시간 기준으로 현재 날짜 가져오기
-    const koreanToday = getKoreanDate(date)
-    const [year, month, day] = koreanToday.split('-').map(Number)
+    // 한국 시간 기준으로 날짜 가져오기
+    const targetDate = date ?? getKoreanDate()
+    const koreanDateString = toKoreanDateString(targetDate as Date)
+    const [year, month, day] = koreanDateString.split('-').map(Number)
     const koreanDate = new Date(year, month - 1, day) // 한국 시간대 기준 Date 객체
     
     const dayOfWeek = koreanDate.getDay()
