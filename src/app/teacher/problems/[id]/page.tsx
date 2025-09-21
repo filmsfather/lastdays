@@ -10,6 +10,7 @@ interface Problem {
   content: string
   limit_minutes: number
   available_date: string
+  preview_lead_time: number
   status: 'draft' | 'published' | 'archived'
   images?: Array<{
     url: string
@@ -394,10 +395,14 @@ export default function ProblemDetailPage({ params }: Props) {
         </div>
 
         {/* 문제 정보 */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
           <div className="bg-white rounded-lg shadow-md p-4">
             <h3 className="text-sm font-medium text-gray-600 mb-1">공개 날짜</h3>
             <p className="text-sm text-gray-800">{formatAvailableDate(problem.available_date)}</p>
+          </div>
+          <div className="bg-white rounded-lg shadow-md p-4">
+            <h3 className="text-sm font-medium text-gray-600 mb-1">사전열람시간</h3>
+            <p className="text-sm text-gray-800">{problem.preview_lead_time}분 전</p>
           </div>
           <div className="bg-white rounded-lg shadow-md p-4">
             <h3 className="text-sm font-medium text-gray-600 mb-1">등록일</h3>

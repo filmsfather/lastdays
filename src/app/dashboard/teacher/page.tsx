@@ -453,9 +453,6 @@ export default function TeacherDashboardPage() {
                               작성자
                             </th>
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                              제한시간
-                            </th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                               공개 날짜
                             </th>
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -488,11 +485,6 @@ export default function TeacherDashboardPage() {
                               <td className="px-6 py-4 whitespace-nowrap">
                                 <span className="text-sm font-medium text-blue-600">
                                   {problem.creator?.name || '알 수 없음'}
-                                </span>
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap">
-                                <span className="text-sm font-medium text-gray-900">
-                                  {problem.limit_minutes}분
                                 </span>
                               </td>
                               <td className="px-6 py-4 whitespace-nowrap">
