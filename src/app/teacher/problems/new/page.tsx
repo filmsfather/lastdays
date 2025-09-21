@@ -189,7 +189,7 @@ export default function NewProblemPage() {
                     <span className="text-gray-500 text-sm">분</span>
                   </div>
                 </div>
-                <p className="mt-1 text-xs text-gray-500">면접 시작 전 문제를 볼 수 있는 시간 (1~240분)</p>
+                <p className="mt-1 text-xs text-gray-500">실제 대학 모의실기 시간 + 5분 추가해서 설정해주세요.</p>
               </div>
 
               <div>
@@ -209,18 +209,21 @@ export default function NewProblemPage() {
                 <p className="mt-1 text-xs text-gray-500">학생들이 문제를 선택할 수 있는 날짜</p>
               </div>
 
-              <div className="flex items-center">
-                <input
-                  type="checkbox"
-                  id="is_public"
-                  name="is_public"
-                  checked={formData.is_public}
-                  onChange={handleInputChange}
-                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                />
-                <label htmlFor="is_public" className="ml-2 block text-sm text-gray-900">
-                  등록 즉시 활성화
-                </label>
+              <div>
+                <div className="flex items-center">
+                  <input
+                    type="checkbox"
+                    id="is_public"
+                    name="is_public"
+                    checked={formData.is_public}
+                    onChange={handleInputChange}
+                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                  />
+                  <label htmlFor="is_public" className="ml-2 block text-sm text-gray-900">
+                    등록 즉시 활성화
+                  </label>
+                </div>
+                <p className="mt-1 text-xs text-gray-500">부원장 선생님 검수후에 활성화해주세요.</p>
               </div>
             </div>
 
