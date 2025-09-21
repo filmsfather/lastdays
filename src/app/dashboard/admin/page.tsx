@@ -283,12 +283,12 @@ function AdminDashboard() {
   }
 
   const getTodayDate = () => {
-    return getKoreanDate().toISOString().split('T')[0]
+    return toKoreanDateString(getKoreanDate())
   }
 
   // 주간 시작일 계산 (월요일 기준, 한국 시간 기준)
   const getWeekStart = (date?: Date) => {
-    const koreanToday = date ? toKoreanDateString(date) : getKoreanDate().toISOString().split('T')[0]
+    const koreanToday = date ? toKoreanDateString(date) : toKoreanDateString(getKoreanDate())
     const [year, month, day] = koreanToday.split('-').map(Number)
     const koreanDate = new Date(year, month - 1, day)
     
@@ -313,7 +313,7 @@ function AdminDashboard() {
 
   const fetchWeeklySchedule = async (weekStart: Date) => {
     try {
-      const weekStartStr = weekStart.toISOString().split('T')[0]
+      const weekStartStr = toKoreanDateString(weekStart)
       const response = await fetch(`/api/admin/weekly-schedule?weekStart=${weekStartStr}`)
       const data = await response.json()
       
@@ -734,7 +734,7 @@ function AdminDashboard() {
                   {/* 주간 캘린더 */}
                   <div className="grid grid-cols-7 gap-4">
                     {getWeekDates(currentWeekStart).map((date, index) => {
-                      const dateString = date.toISOString().split('T')[0]
+                      const dateString = toKoreanDateString(date)
                       const daySlots = weeklySlots.filter(slot => slot.date === dateString)
                       const isToday = date.toDateString() === new Date().toDateString()
                       const isPast = date < new Date() && !isToday

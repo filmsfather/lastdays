@@ -306,7 +306,7 @@ export default function TimeslotManagement() {
 
   // 날짜별 슬롯 그룹핑 (AM/PM 세션별로 분리)
   const getSlotsByDate = (date: Date) => {
-    const dateString = date.toISOString().split('T')[0]
+    const dateString = toKoreanDateString(date)
     const daySlots = timeSlots.filter(slot => slot.date === dateString)
     
     return {
@@ -339,7 +339,7 @@ export default function TimeslotManagement() {
       for (let i = 0; i < 7; i++) {
         const date = new Date(currentWeekStart)
         date.setDate(currentWeekStart.getDate() + i)
-        const dateString = date.toISOString().split('T')[0]
+        const dateString = toKoreanDateString(date)
         
         const promise = fetch(`/api/admin/slots?date=${dateString}&teacherId=${teacherId}`)
           .then(res => res.json())
@@ -559,7 +559,7 @@ export default function TimeslotManagement() {
                     const daySlots = getSlotsByDate(date)
                     const isToday = date.toDateString() === new Date().toDateString()
                     const isPast = date < new Date() && !isToday
-                    const dateString = date.toISOString().split('T')[0]
+                    const dateString = toKoreanDateString(date)
                     
                     return (
                       <div

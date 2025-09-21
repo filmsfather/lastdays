@@ -218,8 +218,8 @@ export default function StudentDashboard() {
       const weekEnd = new Date(currentWeekStart)
       weekEnd.setDate(weekEnd.getDate() + 6)
       
-      const fromDate = currentWeekStart.toISOString().split('T')[0]
-      const toDate = weekEnd.toISOString().split('T')[0]
+      const fromDate = toKoreanDateString(currentWeekStart)
+      const toDate = toKoreanDateString(weekEnd)
       
       const response = await fetch(`/api/slots?from=${fromDate}&to=${toDate}`)
       const data = await response.json()
