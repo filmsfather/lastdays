@@ -333,9 +333,6 @@ export default function ProblemDetailPage({ params }: Props) {
                 {problem.title}
               </h1>
               <div className="flex items-center space-x-3">
-                <span className="px-2 py-1 bg-blue-100 text-blue-700 text-sm rounded">
-                  제한시간: {formatTimeLimit(problem.limit_minutes)}
-                </span>
                 <span className="px-2 py-1 bg-purple-100 text-purple-700 text-sm rounded">
                   공개일: {formatAvailableDate(problem.available_date)}
                 </span>
@@ -397,11 +394,7 @@ export default function ProblemDetailPage({ params }: Props) {
         </div>
 
         {/* 문제 정보 */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-          <div className="bg-white rounded-lg shadow-md p-4">
-            <h3 className="text-sm font-medium text-gray-600 mb-1">제한시간</h3>
-            <p className="text-lg font-bold text-blue-600">{formatTimeLimit(problem.limit_minutes)}</p>
-          </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
           <div className="bg-white rounded-lg shadow-md p-4">
             <h3 className="text-sm font-medium text-gray-600 mb-1">공개 날짜</h3>
             <p className="text-sm text-gray-800">{formatAvailableDate(problem.available_date)}</p>

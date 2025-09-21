@@ -26,7 +26,6 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
       .from('problems')
       .select('*')
       .eq('id', problemId)
-      .eq('created_by', user.id)
       .single()
 
     if (error || !problem) {
@@ -69,17 +68,16 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       )
     }
 
-    // 문제 소유권 확인
+    // 문제 존재 확인
     const { data: existingProblem, error: checkError } = await supabase
       .from('problems')
       .select('id, status, created_by')
       .eq('id', problemId)
-      .eq('created_by', user.id)
       .single()
 
     if (checkError || !existingProblem) {
       return NextResponse.json(
-        { error: '문제를 찾을 수 없거나 수정 권한이 없습니다.' },
+        { error: '문제를 찾을 수 없습니다.' },
         { status: 404 }
       )
     }
@@ -176,7 +174,6 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       .from('problems')
       .update(updateData)
       .eq('id', problemId)
-      .eq('created_by', user.id)
       .select()
       .single()
 
@@ -221,17 +218,16 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
       )
     }
 
-    // 문제 소유권 및 상태 확인
+    // 문제 존재 및 상태 확인
     const { data: existingProblem, error: checkError } = await supabase
       .from('problems')
       .select('id, status, created_by')
       .eq('id', problemId)
-      .eq('created_by', user.id)
       .single()
 
     if (checkError || !existingProblem) {
       return NextResponse.json(
-        { error: '문제를 찾을 수 없거나 삭제 권한이 없습니다.' },
+        { error: '문제를 찾을 수 없습니다.' },
         { status: 404 }
       )
     }
@@ -249,7 +245,6 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
       .from('problems')
       .delete()
       .eq('id', problemId)
-      .eq('created_by', user.id)
 
     if (error) {
       console.error('Database error:', error)

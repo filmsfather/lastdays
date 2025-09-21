@@ -15,7 +15,10 @@ export async function GET(req: NextRequest) {
 
     const { data: problems, error } = await supabase
       .from('problems')
-      .select('*')
+      .select(`
+        *,
+        creator:accounts!created_by(name)
+      `)
       .order('created_at', { ascending: false })
 
     if (error) {
