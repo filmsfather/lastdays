@@ -50,7 +50,39 @@ async function handleEssayReservation(firstSlotId: number, studentId: number, sl
       )
     }
 
-    // 4. 학생 티켓 확인 (2장 필요)
+    // 4. 예약 규칙 검증 (오전/오후 교차 제한, 동일 교사 제한)
+    const { data: validationResult, error: validationError } = await supabase.rpc('validate_reservation_rules', {
+      p_student_id: studentId,
+      p_date: firstSlot.date,
+      p_session_period: firstSlot.session_period,
+      p_teacher_id: firstSlot.teacher_id
+    })
+
+    if (validationError) {
+      console.error('Validation error:', validationError)
+      return NextResponse.json(
+        { error: '예약 규칙 검증 중 오류가 발생했습니다.' },
+        { status: 500 }
+      )
+    }
+
+    // 오전/오후 교차 예약 제한 체크
+    if (!validationResult.can_reserve_cross_block) {
+      return NextResponse.json(
+        { error: '오전/오후 세션을 교차하여 예약할 수 없습니다.' },
+        { status: 400 }
+      )
+    }
+
+    // 동일 교사 제한 체크
+    if (!validationResult.can_reserve_teacher) {
+      return NextResponse.json(
+        { error: '동일 교사에게는 하루 최대 2회까지만 예약할 수 있습니다.' },
+        { status: 400 }
+      )
+    }
+
+    // 5. 학생 티켓 확인 (2장 필요)
     const { data: studentData } = await supabase
       .from('accounts')
       .select('current_tickets')
@@ -64,7 +96,7 @@ async function handleEssayReservation(firstSlotId: number, studentId: number, sl
       )
     }
 
-    // 5. 트랜잭션으로 2슬롯 동시 예약
+    // 6. 트랜잭션으로 2슬롯 동시 예약
     const essayGroupId = crypto.randomUUID()
     
     const { data, error } = await supabase.rpc('create_essay_reservation', {
