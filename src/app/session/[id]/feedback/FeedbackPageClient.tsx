@@ -622,6 +622,14 @@ export default function FeedbackPageClient({ sessionData: initialSessionData, cu
                       placeholder="피드백 내용을 입력해주세요..."
                       className="w-full px-3 py-2 border border-gray-300 rounded-md h-32 resize-none"
                     />
+                    {canEditFeedback && sessionData.scores && (
+                      <button
+                        onClick={handleFeedbackSubmit}
+                        className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
+                      >
+                        피드백 저장
+                      </button>
+                    )}
                   </div>
                 )}
               </div>
@@ -642,7 +650,7 @@ export default function FeedbackPageClient({ sessionData: initialSessionData, cu
                     </p>
                   </div>
                 ))}
-                {canEditFeedback && (
+                {canEditFeedback && sessionData.scores && (
                   <div className="space-y-4 border-t pt-4">
                     <textarea
                       value={feedbackContent}
@@ -650,6 +658,12 @@ export default function FeedbackPageClient({ sessionData: initialSessionData, cu
                       placeholder="추가 피드백을 입력해주세요..."
                       className="w-full px-3 py-2 border border-gray-300 rounded-md h-32 resize-none"
                     />
+                    <button
+                      onClick={handleFeedbackSubmit}
+                      className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
+                    >
+                      피드백 추가
+                    </button>
                   </div>
                 )}
               </div>
