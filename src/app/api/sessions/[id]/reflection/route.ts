@@ -45,9 +45,9 @@ export async function PATCH(
         )
       }
 
-      if (reflectionText.length > 2000) {
+      if (reflectionText.length > 5000) {
         return NextResponse.json(
-          { error: '복기 내용은 2000자를 초과할 수 없습니다.' },
+          { error: '복기 내용은 5000자를 초과할 수 없습니다.' },
           { status: 400 }
         )
       }
