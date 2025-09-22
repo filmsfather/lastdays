@@ -46,6 +46,7 @@ interface FeedbackPageProps {
       major_knowledge: string
       major_suitability: string
       attitude: string
+      evaluation_type?: string
     } | null
     teacherFeedback: Array<{
       id: number
@@ -94,6 +95,25 @@ const getScoreColor = (score: string) => {
   return 'text-gray-600'
 }
 
+// 평가 항목 레이블 매핑
+const getEvaluationLabels = (type: 'interview' | 'writing') => {
+  if (type === 'interview') {
+    return {
+      practical_skills: '실기',
+      major_knowledge: '전공지식',
+      major_suitability: '전공 적합성',
+      attitude: '태도'
+    }
+  } else {
+    return {
+      practical_skills: '캐릭터',
+      major_knowledge: '구성',
+      major_suitability: '소재활용',
+      attitude: '창의성'
+    }
+  }
+}
+
 export default function FeedbackPageClient({ sessionData: initialSessionData, currentUser, isHallOfFameMode = false }: FeedbackPageProps) {
   const [sessionData, setSessionData] = useState(initialSessionData)
   const [scores, setScores] = useState(initialSessionData.scores || {
@@ -107,6 +127,9 @@ export default function FeedbackPageClient({ sessionData: initialSessionData, cu
   const [reflectionText, setReflectionText] = useState('')
   const [newChecklistItem, setNewChecklistItem] = useState('')
   const [currentTime, setCurrentTime] = useState(new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Seoul' })))
+  const [evaluationType, setEvaluationType] = useState<'interview' | 'writing'>(
+    initialSessionData.scores?.evaluation_type === '작법' ? 'writing' : 'interview'
+  )
 
   // 실시간 시간 업데이트
   useEffect(() => {
@@ -293,7 +316,10 @@ export default function FeedbackPageClient({ sessionData: initialSessionData, cu
       const scoreResponse = await fetch(`/api/sessions/${sessionData.sessionId}/scores`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(scores)
+        body: JSON.stringify({
+          ...scores,
+          evaluation_type: evaluationType === 'interview' ? '면접' : '작법'
+        })
       })
 
       if (!scoreResponse.ok) {
@@ -512,25 +538,25 @@ export default function FeedbackPageClient({ sessionData: initialSessionData, cu
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="text-center">
-                    <p className="text-sm text-gray-600">실기</p>
+                    <p className="text-sm text-gray-600">{getEvaluationLabels(evaluationType).practical_skills}</p>
                     <p className={`text-lg font-semibold ${getScoreColor(sessionData.scores.practical_skills)}`}>
                       {sessionData.scores.practical_skills}
                     </p>
                   </div>
                   <div className="text-center">
-                    <p className="text-sm text-gray-600">전공지식</p>
+                    <p className="text-sm text-gray-600">{getEvaluationLabels(evaluationType).major_knowledge}</p>
                     <p className={`text-lg font-semibold ${getScoreColor(sessionData.scores.major_knowledge)}`}>
                       {sessionData.scores.major_knowledge}
                     </p>
                   </div>
                   <div className="text-center">
-                    <p className="text-sm text-gray-600">전공 적합성</p>
+                    <p className="text-sm text-gray-600">{getEvaluationLabels(evaluationType).major_suitability}</p>
                     <p className={`text-lg font-semibold ${getScoreColor(sessionData.scores.major_suitability)}`}>
                       {sessionData.scores.major_suitability}
                     </p>
                   </div>
                   <div className="text-center">
-                    <p className="text-sm text-gray-600">태도</p>
+                    <p className="text-sm text-gray-600">{getEvaluationLabels(evaluationType).attitude}</p>
                     <p className={`text-lg font-semibold ${getScoreColor(sessionData.scores.attitude)}`}>
                       {sessionData.scores.attitude}
                     </p>
@@ -539,10 +565,36 @@ export default function FeedbackPageClient({ sessionData: initialSessionData, cu
               </div>
             ) : canEditScores ? (
               <div className="space-y-4">
-                <p className="text-gray-500 mb-4">점수를 입력해주세요.</p>
+                {/* 평가 유형 토글 */}
+                <div className="flex items-center justify-between mb-4">
+                  <p className="text-gray-500">평가 유형을 선택하고 점수를 입력해주세요.</p>
+                  <div className="flex items-center space-x-2">
+                    <span className={`text-sm ${evaluationType === 'interview' ? 'text-blue-600 font-medium' : 'text-gray-500'}`}>
+                      면접
+                    </span>
+                    <button
+                      onClick={() => setEvaluationType(evaluationType === 'interview' ? 'writing' : 'interview')}
+                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
+                        evaluationType === 'writing' ? 'bg-blue-600' : 'bg-gray-300'
+                      }`}
+                    >
+                      <span
+                        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                          evaluationType === 'writing' ? 'translate-x-6' : 'translate-x-1'
+                        }`}
+                      />
+                    </button>
+                    <span className={`text-sm ${evaluationType === 'writing' ? 'text-blue-600 font-medium' : 'text-gray-500'}`}>
+                      작법
+                    </span>
+                  </div>
+                </div>
+                
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">실기</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      {getEvaluationLabels(evaluationType).practical_skills}
+                    </label>
                     <select
                       value={scores.practical_skills}
                       onChange={(e) => setScores({...scores, practical_skills: e.target.value})}
@@ -557,7 +609,9 @@ export default function FeedbackPageClient({ sessionData: initialSessionData, cu
                     </select>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">전공지식</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      {getEvaluationLabels(evaluationType).major_knowledge}
+                    </label>
                     <select
                       value={scores.major_knowledge}
                       onChange={(e) => setScores({...scores, major_knowledge: e.target.value})}
@@ -572,7 +626,9 @@ export default function FeedbackPageClient({ sessionData: initialSessionData, cu
                     </select>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">전공 적합성</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      {getEvaluationLabels(evaluationType).major_suitability}
+                    </label>
                     <select
                       value={scores.major_suitability}
                       onChange={(e) => setScores({...scores, major_suitability: e.target.value})}
@@ -587,7 +643,9 @@ export default function FeedbackPageClient({ sessionData: initialSessionData, cu
                     </select>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">태도</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      {getEvaluationLabels(evaluationType).attitude}
+                    </label>
                     <select
                       value={scores.attitude}
                       onChange={(e) => setScores({...scores, attitude: e.target.value})}

@@ -26,12 +26,20 @@ export async function POST(
     }
 
     const body = await request.json()
-    const { practical_skills, major_knowledge, major_suitability, attitude } = body
+    const { practical_skills, major_knowledge, major_suitability, attitude, evaluation_type } = body
 
     // 입력 검증
     if (!practical_skills || !major_knowledge || !major_suitability || !attitude) {
       return NextResponse.json(
         { error: '모든 점수 항목을 입력해주세요.' },
+        { status: 400 }
+      )
+    }
+
+    // evaluation_type 검증
+    if (evaluation_type && !['면접', '작법'].includes(evaluation_type)) {
+      return NextResponse.json(
+        { error: '평가 유형은 면접 또는 작법이어야 합니다.' },
         { status: 400 }
       )
     }
@@ -69,16 +77,23 @@ export async function POST(
 
     if (existingScore) {
       // 기존 점수 업데이트
+      const updateData: any = {
+        practical_skills,
+        major_knowledge,
+        major_suitability,
+        attitude,
+        scored_by: currentUser.id,
+        updated_at: new Date().toISOString()
+      }
+      
+      // evaluation_type이 제공된 경우에만 추가
+      if (evaluation_type) {
+        updateData.evaluation_type = evaluation_type
+      }
+
       const { error: updateError } = await supabase
         .from('scores')
-        .update({
-          practical_skills,
-          major_knowledge,
-          major_suitability,
-          attitude,
-          scored_by: currentUser.id,
-          updated_at: new Date().toISOString()
-        })
+        .update(updateData)
         .eq('session_id', sessionId)
 
       if (updateError) {
@@ -90,16 +105,23 @@ export async function POST(
       }
     } else {
       // 새 점수 생성
+      const insertData: any = {
+        session_id: sessionId,
+        practical_skills,
+        major_knowledge,
+        major_suitability,
+        attitude,
+        scored_by: currentUser.id
+      }
+      
+      // evaluation_type이 제공된 경우에만 추가
+      if (evaluation_type) {
+        insertData.evaluation_type = evaluation_type
+      }
+
       const { error: insertError } = await supabase
         .from('scores')
-        .insert({
-          session_id: sessionId,
-          practical_skills,
-          major_knowledge,
-          major_suitability,
-          attitude,
-          scored_by: currentUser.id
-        })
+        .insert(insertData)
 
       if (insertError) {
         console.error('Score insert error:', insertError)

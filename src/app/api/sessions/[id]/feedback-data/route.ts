@@ -310,7 +310,8 @@ export async function GET(
         practical_skills: scores.practical_skills,
         major_knowledge: scores.major_knowledge,
         major_suitability: scores.major_suitability,
-        attitude: scores.attitude
+        attitude: scores.attitude,
+        evaluation_type: scores.evaluation_type
       } : null,
       teacherFeedback: feedbacks || [],
       checklistItems: checklistItems || [],
