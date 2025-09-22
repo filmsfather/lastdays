@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getCurrentUser } from '@/lib/auth'
 import { supabase } from '@/lib/supabase'
+import { toKoreanDateString, getKoreanDate } from '@/lib/dateUtils'
 
 // GET /api/sessions/[id]/feedback-data - 세션 피드백 데이터 조회
 export async function GET(
@@ -125,6 +126,15 @@ export async function GET(
     }
 
     // 4단계: 같은 날짜/블록/교사의 예약들을 가져와서 큐 위치 계산
+    // 현재 예약의 날짜를 한국 시간대로 정규화
+    const reservationDate = toKoreanDateString(new Date((reservation.slot as any).date))
+    
+    console.log('=== 큐 계산 디버그 ===')
+    console.log('Original reservation date:', (reservation.slot as any).date)
+    console.log('Normalized reservation date:', reservationDate)
+    console.log('Session period:', (reservation.slot as any).session_period)
+    console.log('Teacher ID:', (reservation.slot as any).teacher.id)
+    
     const { data: queueData, error: queueError } = await supabase
       .from('reservations')
       .select(`
@@ -136,7 +146,7 @@ export async function GET(
           teacher:teacher_id (id)
         )
       `)
-      .eq('slot.date', (reservation.slot as any).date)
+      .eq('slot.date', reservationDate)
       .eq('slot.session_period', (reservation.slot as any).session_period)
       .eq('slot.teacher_id', (reservation.slot as any).teacher.id)
       .order('created_at', { ascending: true })
@@ -149,6 +159,10 @@ export async function GET(
       )
     }
 
+    console.log('Queue data found:', queueData?.length || 0)
+    console.log('Queue reservation IDs:', queueData?.map(r => r.id) || [])
+    console.log('Current reservation ID:', reservation.id)
+    
     // 큐 위치 계산 (1부터 시작)
     const queuePosition = queueData.findIndex(r => r.id === reservation.id) + 1
 
@@ -161,19 +175,21 @@ export async function GET(
     }
 
     // 5단계: 스케줄링 계산
-    // 예약 시작 시간 설정 - time_slot 필드를 직접 사용
-    const slotDate = (reservation.slot as any).date
+    // 한국 시간대 기준 현재 시간
+    const now = getKoreanDate()
+    
+    // 슬롯 날짜와 시간을 한국 시간대로 정규화
+    const slotDate = toKoreanDateString(new Date((reservation.slot as any).date))
     const timeSlot = (reservation.slot as any).time_slot // 예: "17:00:00"
     const scheduledStartAt = new Date(slotDate + 'T' + timeSlot + '+09:00')
     
     // 디버그 로그
     console.log('=== 시간 계산 디버그 ===')
-    console.log('slotDate:', slotDate)
+    console.log('Original slotDate:', (reservation.slot as any).date)
+    console.log('Normalized slotDate:', slotDate)
     console.log('timeSlot:', timeSlot)
     console.log('scheduledStartAt:', scheduledStartAt.toISOString())
-    
-    // 한국 시간대 기준으로 현재 시간 가져오기
-    const now = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Seoul' }))
+    console.log('Korean time now:', now.toISOString())
     const previewLeadMinutes = problem.preview_lead_time || 10
     const previewStartTime = new Date(scheduledStartAt.getTime() - previewLeadMinutes * 60000)
     const waitingRoomTime = new Date(scheduledStartAt.getTime() - 5 * 60000) // 5분 전
@@ -183,9 +199,9 @@ export async function GET(
     const sessionEndTime = new Date(scheduledStartAt.getTime() + INTERVIEW_DURATION_MINUTES * 60000)
     
     // 추가 디버그 로그
-    console.log('now:', now.toISOString())
     console.log('previewLeadMinutes:', previewLeadMinutes)
     console.log('previewStartTime:', previewStartTime.toISOString())
+    console.log('waitingRoomTime:', waitingRoomTime.toISOString())
     console.log('sessionEndTime:', sessionEndTime.toISOString())
     
     // 시간 상태 판정
