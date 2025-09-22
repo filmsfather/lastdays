@@ -135,21 +135,11 @@ export async function GET(
     console.log('Session period:', (reservation.slot as any).session_period)
     console.log('Teacher ID:', (reservation.slot as any).teacher.id)
     
-    const { data: queueData, error: queueError } = await supabase
-      .from('reservations')
-      .select(`
-        id,
-        created_at,
-        slot:slot_id (
-          date,
-          session_period,
-          teacher:teacher_id (id)
-        )
-      `)
-      .eq('slot.date', reservationDate)
-      .eq('slot.session_period', (reservation.slot as any).session_period)
-      .eq('slot.teacher_id', (reservation.slot as any).teacher.id)
-      .order('created_at', { ascending: true })
+    const { data: queueData, error: queueError } = await supabase.rpc('get_queue_reservations', {
+      target_date: reservationDate,
+      target_period: (reservation.slot as any).session_period,
+      target_teacher_id: (reservation.slot as any).teacher.id
+    })
 
     if (queueError) {
       console.error('Queue calculation error:', queueError)
