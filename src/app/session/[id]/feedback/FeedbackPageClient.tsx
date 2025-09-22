@@ -274,6 +274,53 @@ export default function FeedbackPageClient({ sessionData: initialSessionData, cu
     }
   }
 
+  // 통합 평가 제출 함수
+  const handleEvaluationSubmit = async () => {
+    // 유효성 검사
+    const allScoresSelected = Object.values(scores).every(score => score.trim())
+    if (!allScoresSelected) {
+      toast.error('모든 점수를 선택해주세요.')
+      return
+    }
+
+    if (!feedbackContent.trim()) {
+      toast.error('피드백 내용을 입력해주세요.')
+      return
+    }
+
+    try {
+      // 점수 저장
+      const scoreResponse = await fetch(`/api/sessions/${sessionData.sessionId}/scores`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(scores)
+      })
+
+      if (!scoreResponse.ok) {
+        toast.error('점수 저장에 실패했습니다.')
+        return
+      }
+
+      // 피드백 저장
+      const feedbackResponse = await fetch(`/api/sessions/${sessionData.sessionId}/feedback`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content: feedbackContent })
+      })
+
+      if (!feedbackResponse.ok) {
+        toast.error('피드백 저장에 실패했습니다.')
+        return
+      }
+
+      toast.success('평가가 완료되었습니다.')
+      setFeedbackContent('')
+      window.location.reload()
+    } catch (error) {
+      toast.error('오류가 발생했습니다.')
+    }
+  }
+
   // 복기 제출 함수
   const handleReflectionSubmit = async () => {
     try {
@@ -555,12 +602,6 @@ export default function FeedbackPageClient({ sessionData: initialSessionData, cu
                     </select>
                   </div>
                 </div>
-                <button
-                  onClick={handleScoreSubmit}
-                  className="w-full mt-4 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-                >
-                  점수 저장
-                </button>
               </div>
             ) : (
               <p className="text-gray-500">아직 점수가 등록되지 않았습니다.</p>
@@ -581,12 +622,6 @@ export default function FeedbackPageClient({ sessionData: initialSessionData, cu
                       placeholder="피드백 내용을 입력해주세요..."
                       className="w-full px-3 py-2 border border-gray-300 rounded-md h-32 resize-none"
                     />
-                    <button
-                      onClick={handleFeedbackSubmit}
-                      className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
-                    >
-                      피드백 저장
-                    </button>
                   </div>
                 )}
               </div>
@@ -615,17 +650,23 @@ export default function FeedbackPageClient({ sessionData: initialSessionData, cu
                       placeholder="추가 피드백을 입력해주세요..."
                       className="w-full px-3 py-2 border border-gray-300 rounded-md h-32 resize-none"
                     />
-                    <button
-                      onClick={handleFeedbackSubmit}
-                      className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
-                    >
-                      피드백 추가
-                    </button>
                   </div>
                 )}
               </div>
             )}
           </div>
+
+          {/* 통합 평가 완료 버튼 */}
+          {canEditScores && canEditFeedback && !sessionData.scores && (
+            <div className="bg-white rounded-lg shadow-md p-6 lg:col-span-2">
+              <button
+                onClick={handleEvaluationSubmit}
+                className="w-full px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-lg font-medium"
+              >
+                평가 완료 (점수 + 피드백 저장)
+              </button>
+            </div>
+          )}
 
           {/* 학습 체크리스트 */}
           <div className="bg-white rounded-lg shadow-md p-6">
