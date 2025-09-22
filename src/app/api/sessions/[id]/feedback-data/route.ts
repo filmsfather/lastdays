@@ -150,11 +150,11 @@ export async function GET(
     }
 
     console.log('Queue data found:', queueData?.length || 0)
-    console.log('Queue reservation IDs:', queueData?.map(r => r.id) || [])
+    console.log('Queue reservation IDs:', queueData?.map((r: any) => r.id) || [])
     console.log('Current reservation ID:', reservation.id)
     
     // 큐 위치 계산 (1부터 시작)
-    const queuePosition = queueData.findIndex(r => r.id === reservation.id) + 1
+    const queuePosition = queueData?.findIndex((r: any) => r.id === reservation.id) + 1 || 0
 
     if (queuePosition === 0) {
       console.error('Reservation not found in queue')
