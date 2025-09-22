@@ -41,6 +41,7 @@ export default function TeacherStudentsPage() {
   const [classSections, setClassSections] = useState<ClassSection[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [searchTerm, setSearchTerm] = useState('')
 
   useEffect(() => {
     async function checkAuth() {
@@ -127,6 +128,14 @@ export default function TeacherStudentsPage() {
 
   if (!user) return null
 
+  // 검색어로 필터링
+  const filteredSections = classSections.map(section => ({
+    ...section,
+    students: section.students.filter(student => 
+      student.name.toLowerCase().includes(searchTerm.toLowerCase())
+    )
+  })).filter(section => section.students.length > 0)
+
   return (
     <div className="min-h-screen bg-gray-100">
       <div className="container mx-auto px-4 py-8">
@@ -157,6 +166,24 @@ export default function TeacherStudentsPage() {
           </div>
         </div>
 
+        {/* 검색 필드 */}
+        <div className="bg-white rounded-lg shadow-md p-4 mb-6">
+          <div className="relative">
+            <input
+              type="text"
+              placeholder="학생 이름으로 검색..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+              </svg>
+            </div>
+          </div>
+        </div>
+
         {/* 전체 통계 */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
           <div className="bg-white rounded-lg shadow-md p-6">
@@ -164,21 +191,26 @@ export default function TeacherStudentsPage() {
             <p className="text-3xl font-bold text-blue-600">{classSections.length}개 반</p>
           </div>
           <div className="bg-white rounded-lg shadow-md p-6">
-            <h3 className="text-lg font-semibold text-gray-800 mb-2">전체 학생 수</h3>
+            <h3 className="text-lg font-semibold text-gray-800 mb-2">
+              {searchTerm ? '검색된 학생 수' : '전체 학생 수'}
+            </h3>
             <p className="text-3xl font-bold text-green-600">
-              {classSections.reduce((total, section) => total + section.students.length, 0)}명
+              {searchTerm 
+                ? filteredSections.reduce((total, section) => total + section.students.length, 0)
+                : classSections.reduce((total, section) => total + section.students.length, 0)
+              }명
             </p>
           </div>
           <div className="bg-white rounded-lg shadow-md p-6">
             <h3 className="text-lg font-semibold text-gray-800 mb-2">평균 이용권</h3>
             <p className="text-3xl font-bold text-purple-600">
-              {classSections.length > 0 
+              {(searchTerm ? filteredSections : classSections).length > 0 
                 ? Math.round(
-                    classSections.reduce((total, section) => 
+                    (searchTerm ? filteredSections : classSections).reduce((total, section) => 
                       total + section.students.reduce((sectionTotal, student) => 
                         sectionTotal + student.remaining_tickets, 0
                       ), 0
-                    ) / classSections.reduce((total, section) => total + section.students.length, 0)
+                    ) / (searchTerm ? filteredSections : classSections).reduce((total, section) => total + section.students.length, 0)
                   )
                 : 0
               }장
@@ -187,7 +219,21 @@ export default function TeacherStudentsPage() {
         </div>
 
         {/* 반별 학생 목록 */}
-        {classSections.length === 0 ? (
+        {filteredSections.length === 0 && searchTerm ? (
+          <div className="bg-white rounded-lg shadow-md p-8 text-center">
+            <div className="text-gray-400 mb-4">
+              <svg className="mx-auto h-12 w-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+              </svg>
+            </div>
+            <h3 className="text-lg font-medium text-gray-600 mb-2">
+              검색 결과가 없습니다
+            </h3>
+            <p className="text-gray-500">
+              &ldquo;{searchTerm}&rdquo;와(과) 일치하는 학생이 없습니다
+            </p>
+          </div>
+        ) : classSections.length === 0 ? (
           <div className="bg-white rounded-lg shadow-md p-8 text-center">
             <div className="text-gray-400 mb-4">
               <svg className="mx-auto h-12 w-12" fill="currentColor" viewBox="0 0 24 24">
@@ -203,7 +249,7 @@ export default function TeacherStudentsPage() {
           </div>
         ) : (
           <div className="space-y-6">
-            {classSections.map((section) => (
+            {filteredSections.map((section) => (
               <div key={section.class_name} className="bg-white rounded-lg shadow-md">
                 {/* 반 헤더 */}
                 <div className="px-6 py-4 border-b border-gray-200">
