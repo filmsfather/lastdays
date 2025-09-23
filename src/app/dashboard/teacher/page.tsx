@@ -350,44 +350,6 @@ export default function TeacherDashboardPage() {
           <div className="p-6">
             {activeTab === 'overview' && (
               <div className="space-y-6">
-                {/* 통계 카드 */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="bg-blue-50 rounded-lg p-6">
-                    <h3 className="text-lg font-semibold text-blue-800 mb-2">오늘 세션</h3>
-                    <p className="text-3xl font-bold text-blue-600">{stats.todays_sessions}개</p>
-                    <p className="text-sm text-blue-600 mt-1">진행된 세션 수</p>
-                  </div>
-                  <div className="bg-green-50 rounded-lg p-6">
-                    <h3 className="text-lg font-semibold text-green-800 mb-2">활성 예약</h3>
-                    <p className="text-3xl font-bold text-green-600">{stats.active_reservations}개</p>
-                    <p className="text-sm text-green-600 mt-1">대기 중인 예약</p>
-                  </div>
-                  <div className="bg-purple-50 rounded-lg p-6">
-                    <h3 className="text-lg font-semibold text-purple-800 mb-2">전체 문제</h3>
-                    <p className="text-3xl font-bold text-purple-600">{stats.total_problems}개</p>
-                    <p className="text-sm text-purple-600 mt-1">등록된 문제 수</p>
-                  </div>
-                </div>
-
-                {/* 문제 통계 */}
-                <div className="bg-white rounded-lg border p-6">
-                  <h3 className="text-lg font-semibold text-gray-800 mb-4">내 문제 통계</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="text-center p-4 bg-gray-50 rounded-lg">
-                      <p className="text-2xl font-bold text-gray-800">{stats.total_problems}</p>
-                      <p className="text-sm text-gray-600">전체 문제</p>
-                    </div>
-                    <div className="text-center p-4 bg-green-50 rounded-lg">
-                      <p className="text-2xl font-bold text-green-600">{stats.public_problems}</p>
-                      <p className="text-sm text-gray-600">공개 문제</p>
-                    </div>
-                    <div className="text-center p-4 bg-orange-50 rounded-lg">
-                      <p className="text-2xl font-bold text-orange-600">{stats.private_problems}</p>
-                      <p className="text-sm text-gray-600">비공개 문제</p>
-                    </div>
-                  </div>
-                </div>
-
                 {/* 공지사항 */}
                 <div className="bg-white rounded-lg border p-6">
                   <div className="flex items-center justify-between mb-4">
@@ -446,6 +408,44 @@ export default function TeacherDashboardPage() {
                       ))}
                     </div>
                   )}
+                </div>
+
+                {/* 통계 카드 */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="bg-blue-50 rounded-lg p-6">
+                    <h3 className="text-lg font-semibold text-blue-800 mb-2">오늘 세션</h3>
+                    <p className="text-3xl font-bold text-blue-600">{stats.todays_sessions}개</p>
+                    <p className="text-sm text-blue-600 mt-1">진행된 세션 수</p>
+                  </div>
+                  <div className="bg-green-50 rounded-lg p-6">
+                    <h3 className="text-lg font-semibold text-green-800 mb-2">활성 예약</h3>
+                    <p className="text-3xl font-bold text-green-600">{stats.active_reservations}개</p>
+                    <p className="text-sm text-green-600 mt-1">대기 중인 예약</p>
+                  </div>
+                  <div className="bg-purple-50 rounded-lg p-6">
+                    <h3 className="text-lg font-semibold text-purple-800 mb-2">전체 문제</h3>
+                    <p className="text-3xl font-bold text-purple-600">{stats.total_problems}개</p>
+                    <p className="text-sm text-purple-600 mt-1">등록된 문제 수</p>
+                  </div>
+                </div>
+
+                {/* 문제 통계 */}
+                <div className="bg-white rounded-lg border p-6">
+                  <h3 className="text-lg font-semibold text-gray-800 mb-4">내 문제 통계</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="text-center p-4 bg-gray-50 rounded-lg">
+                      <p className="text-2xl font-bold text-gray-800">{stats.total_problems}</p>
+                      <p className="text-sm text-gray-600">전체 문제</p>
+                    </div>
+                    <div className="text-center p-4 bg-green-50 rounded-lg">
+                      <p className="text-2xl font-bold text-green-600">{stats.public_problems}</p>
+                      <p className="text-sm text-gray-600">공개 문제</p>
+                    </div>
+                    <div className="text-center p-4 bg-orange-50 rounded-lg">
+                      <p className="text-2xl font-bold text-orange-600">{stats.private_problems}</p>
+                      <p className="text-sm text-gray-600">비공개 문제</p>
+                    </div>
+                  </div>
                 </div>
 
                 {/* 빠른 링크 */}
