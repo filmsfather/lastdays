@@ -155,6 +155,12 @@ type RouteHandlerConfig<Route extends AppRouteHandlerRoutes = AppRouteHandlerRou
   handler satisfies RouteHandlerConfig<"/api/admin/accounts">
 }
 
+// Validate ../../src/app/api/admin/announcements/route.ts
+{
+  const handler = {} as typeof import("../../src/app/api/admin/announcements/route.js")
+  handler satisfies RouteHandlerConfig<"/api/admin/announcements">
+}
+
 // Validate ../../src/app/api/admin/day-settings/route.ts
 {
   const handler = {} as typeof import("../../src/app/api/admin/day-settings/route.js")
@@ -207,6 +213,12 @@ type RouteHandlerConfig<Route extends AppRouteHandlerRoutes = AppRouteHandlerRou
 {
   const handler = {} as typeof import("../../src/app/api/admin/weekly-schedule/route.js")
   handler satisfies RouteHandlerConfig<"/api/admin/weekly-schedule">
+}
+
+// Validate ../../src/app/api/announcements/route.ts
+{
+  const handler = {} as typeof import("../../src/app/api/announcements/route.js")
+  handler satisfies RouteHandlerConfig<"/api/announcements">
 }
 
 // Validate ../../src/app/api/auth/login/route.ts

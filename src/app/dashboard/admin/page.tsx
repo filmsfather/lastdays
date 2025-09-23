@@ -28,6 +28,17 @@ interface DaySetting {
   updated_at: string
 }
 
+interface Announcement {
+  id: number
+  title: string
+  content: string
+  is_active: boolean
+  created_at: string
+  updated_at: string
+  creator_name: string
+  creator_class: string
+}
+
 function AdminDashboard() {
   const [accounts, setAccounts] = useState<Account[]>([])
   const [ticketStats, setTicketStats] = useState<TicketStats | null>(null)
@@ -52,6 +63,10 @@ function AdminDashboard() {
   const [teachers, setTeachers] = useState<Account[]>([])
   const [daySettings, setDaySettings] = useState<DaySetting[]>([])
   const [daySettingsLoading, setDaySettingsLoading] = useState(false)
+  const [announcements, setAnnouncements] = useState<Announcement[]>([])
+  const [showAnnouncementModal, setShowAnnouncementModal] = useState(false)
+  const [announcementForm, setAnnouncementForm] = useState({ id: null as number | null, title: '', content: '', isActive: true })
+  const [announcementsLoading, setAnnouncementsLoading] = useState(false)
 
   const fetchAccounts = useCallback(async () => {
     try {
@@ -153,8 +168,86 @@ function AdminDashboard() {
     }
   }
 
+  const fetchAnnouncements = async () => {
+    try {
+      setAnnouncementsLoading(true)
+      const response = await fetch('/api/admin/announcements')
+      const data = await response.json()
+      
+      if (data.success) {
+        setAnnouncements(data.announcements)
+      } else {
+        console.error('Failed to fetch announcements:', data.error)
+      }
+    } catch (error) {
+      console.error('Error fetching announcements:', error)
+    } finally {
+      setAnnouncementsLoading(false)
+    }
+  }
+
+  const handleAnnouncementSubmit = async () => {
+    if (!announcementForm.title || !announcementForm.content) {
+      alert('제목과 내용을 입력해주세요.')
+      return
+    }
+
+    try {
+      const method = announcementForm.id ? 'PUT' : 'POST'
+      const response = await fetch('/api/admin/announcements', {
+        method,
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          id: announcementForm.id,
+          title: announcementForm.title,
+          content: announcementForm.content,
+          isActive: announcementForm.isActive
+        })
+      })
+
+      const data = await response.json()
+
+      if (data.success) {
+        alert(data.message)
+        setShowAnnouncementModal(false)
+        setAnnouncementForm({ id: null, title: '', content: '', isActive: true })
+        fetchAnnouncements()
+      } else {
+        alert(data.error || '공지사항 처리에 실패했습니다.')
+      }
+    } catch (error) {
+      console.error('Error handling announcement:', error)
+      alert('공지사항 처리 중 오류가 발생했습니다.')
+    }
+  }
+
+  const handleDeleteAnnouncement = async (id: number) => {
+    if (!confirm('이 공지사항을 삭제하시겠습니까?')) return
+
+    try {
+      const response = await fetch(`/api/admin/announcements?id=${id}`, {
+        method: 'DELETE'
+      })
+
+      const data = await response.json()
+
+      if (data.success) {
+        alert(data.message)
+        fetchAnnouncements()
+      } else {
+        alert(data.error || '공지사항 삭제에 실패했습니다.')
+      }
+    } catch (error) {
+      console.error('Error deleting announcement:', error)
+      alert('공지사항 삭제 중 오류가 발생했습니다.')
+    }
+  }
+
   useEffect(() => {
     fetchDaySettings()
+    fetchAnnouncements()
   }, [fetchDaySettings])
 
   const handleWeeklyIssue = async () => {
@@ -618,6 +711,12 @@ function AdminDashboard() {
                 명예의 전당 🏆
               </button>
               <button
+                onClick={() => setShowAnnouncementModal(true)}
+                className="w-full px-6 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+              >
+                공지사항 관리 📢
+              </button>
+              <button
                 onClick={() => {
                   const weekStart = getWeekStart(new Date())
                   setCurrentWeekStart(weekStart)
@@ -630,6 +729,101 @@ function AdminDashboard() {
               </button>
             </div>
           </div>
+        </div>
+
+        {/* 공지사항 관리 섹션 */}
+        <div className="bg-white p-6 rounded-lg shadow mb-8">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h2 className="text-xl font-semibold text-gray-900 mb-1">공지사항 관리</h2>
+              <p className="text-sm text-gray-600">학생 대시보드에 표시될 공지사항을 관리합니다</p>
+            </div>
+            <div className="w-12 h-12 bg-red-100 rounded-xl flex items-center justify-center">
+              <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.196-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+              </svg>
+            </div>
+          </div>
+
+          {announcementsLoading ? (
+            <div className="text-center py-8">
+              <div className="w-8 h-8 border-4 border-red-200 border-t-red-600 rounded-full animate-spin mx-auto mb-2"></div>
+              <p className="text-gray-600">공지사항을 불러오는 중...</p>
+            </div>
+          ) : (
+            <div>
+              <div className="flex justify-between items-center mb-4">
+                <span className="text-sm text-gray-600">총 {announcements.length}개의 공지사항</span>
+                <button
+                  onClick={() => {
+                    setAnnouncementForm({ id: null, title: '', content: '', isActive: true })
+                    setShowAnnouncementModal(true)
+                  }}
+                  className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                >
+                  새 공지사항 작성
+                </button>
+              </div>
+              
+              {announcements.length === 0 ? (
+                <div className="text-center py-8">
+                  <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                    <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.196-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+                    </svg>
+                  </div>
+                  <p className="text-gray-500">등록된 공지사항이 없습니다</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {announcements.map((announcement) => (
+                    <div key={announcement.id} className="border rounded-lg p-4 hover:bg-gray-50 transition-colors">
+                      <div className="flex justify-between items-start">
+                        <div className="flex-1">
+                          <div className="flex items-center space-x-2 mb-2">
+                            <h3 className="font-semibold text-gray-900">{announcement.title}</h3>
+                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                              announcement.is_active 
+                                ? 'bg-green-100 text-green-800' 
+                                : 'bg-gray-100 text-gray-600'
+                            }`}>
+                              {announcement.is_active ? '활성' : '비활성'}
+                            </span>
+                          </div>
+                          <p className="text-gray-600 text-sm line-clamp-2 mb-2">{announcement.content}</p>
+                          <p className="text-xs text-gray-500">
+                            {announcement.creator_name} • {new Date(announcement.created_at).toLocaleDateString('ko-KR')}
+                          </p>
+                        </div>
+                        <div className="flex space-x-2 ml-4">
+                          <button
+                            onClick={() => {
+                              setAnnouncementForm({
+                                id: announcement.id,
+                                title: announcement.title,
+                                content: announcement.content,
+                                isActive: announcement.is_active
+                              })
+                              setShowAnnouncementModal(true)
+                            }}
+                            className="px-3 py-1 text-blue-600 hover:bg-blue-50 rounded transition-colors text-sm"
+                          >
+                            수정
+                          </button>
+                          <button
+                            onClick={() => handleDeleteAnnouncement(announcement.id)}
+                            className="px-3 py-1 text-red-600 hover:bg-red-50 rounded transition-colors text-sm"
+                          >
+                            삭제
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* 반별 현황 */}
@@ -1123,6 +1317,69 @@ function AdminDashboard() {
                 className="flex-1 px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700"
               >
                 타임슬롯 관리 열기
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 공지사항 모달 */}
+      {showAnnouncementModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-2xl">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">
+              {announcementForm.id ? '공지사항 수정' : '새 공지사항 작성'}
+            </h3>
+            
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">제목</label>
+              <input
+                type="text"
+                value={announcementForm.title}
+                onChange={(e) => setAnnouncementForm({...announcementForm, title: e.target.value})}
+                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                placeholder="공지사항 제목을 입력하세요"
+              />
+            </div>
+
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">내용</label>
+              <textarea
+                rows={6}
+                value={announcementForm.content}
+                onChange={(e) => setAnnouncementForm({...announcementForm, content: e.target.value})}
+                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                placeholder="공지사항 내용을 입력하세요"
+              />
+            </div>
+
+            <div className="mb-6">
+              <label className="flex items-center">
+                <input
+                  type="checkbox"
+                  checked={announcementForm.isActive}
+                  onChange={(e) => setAnnouncementForm({...announcementForm, isActive: e.target.checked})}
+                  className="h-4 w-4 text-red-600 focus:ring-red-500 border-gray-300 rounded"
+                />
+                <span className="ml-2 text-sm text-gray-700">활성화 (학생들에게 표시)</span>
+              </label>
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => {
+                  setShowAnnouncementModal(false)
+                  setAnnouncementForm({ id: null, title: '', content: '', isActive: true })
+                }}
+                className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded hover:bg-gray-50"
+              >
+                취소
+              </button>
+              <button
+                onClick={handleAnnouncementSubmit}
+                className="flex-1 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+              >
+                {announcementForm.id ? '수정' : '작성'}
               </button>
             </div>
           </div>

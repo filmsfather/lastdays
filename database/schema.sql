@@ -124,3 +124,14 @@ CREATE TABLE student_reflections (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     UNIQUE(session_id)
 );
+
+-- 공지사항 테이블
+CREATE TABLE announcements (
+    id SERIAL PRIMARY KEY,
+    title VARCHAR(200) NOT NULL,
+    content TEXT NOT NULL,
+    is_active BOOLEAN DEFAULT TRUE,
+    created_by INTEGER NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
