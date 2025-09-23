@@ -33,6 +33,16 @@ interface DashboardStats {
   active_reservations: number
 }
 
+interface Announcement {
+  id: number
+  title: string
+  content: string
+  created_at: string
+  updated_at: string
+  creator_name: string
+  creator_class: string
+}
+
 export default function TeacherDashboardPage() {
   const [user, setUser] = useState<User | null>(null)
   const [activeTab, setActiveTab] = useState<'overview' | 'problems'>('overview')
@@ -49,6 +59,8 @@ export default function TeacherDashboardPage() {
   const [currentPin, setCurrentPin] = useState('')
   const [newPin, setNewPin] = useState('')
   const [pinChangeLoading, setPinChangeLoading] = useState(false)
+  const [announcements, setAnnouncements] = useState<Announcement[]>([])
+  const [announcementsLoading, setAnnouncementsLoading] = useState(false)
 
   // 현재 사용자 정보 조회
   useEffect(() => {
@@ -88,7 +100,8 @@ export default function TeacherDashboardPage() {
       try {
         await Promise.all([
           fetchProblems(),
-          fetchStats()
+          fetchStats(),
+          fetchAnnouncements()
         ])
       } catch (error) {
         console.error('데이터 로드 실패:', error)
@@ -134,6 +147,27 @@ export default function TeacherDashboardPage() {
       }
     } catch (error) {
       console.error('통계 조회 실패:', error)
+    }
+  }
+
+  // 공지사항 조회
+  const fetchAnnouncements = async () => {
+    try {
+      setAnnouncementsLoading(true)
+      const response = await fetch('/api/announcements', {
+        credentials: 'include'
+      })
+      const data = await response.json()
+      
+      if (data.success) {
+        setAnnouncements(data.announcements || [])
+      } else {
+        console.error('Failed to fetch announcements:', data.error)
+      }
+    } catch (error) {
+      console.error('Error fetching announcements:', error)
+    } finally {
+      setAnnouncementsLoading(false)
     }
   }
 
@@ -352,6 +386,66 @@ export default function TeacherDashboardPage() {
                       <p className="text-sm text-gray-600">비공개 문제</p>
                     </div>
                   </div>
+                </div>
+
+                {/* 공지사항 */}
+                <div className="bg-white rounded-lg border p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center">
+                      <div className="w-12 h-12 bg-red-100 rounded-xl flex items-center justify-center mr-4">
+                        <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.196-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+                        </svg>
+                      </div>
+                      <div>
+                        <h3 className="text-lg font-semibold text-gray-800 flex items-center">
+                          공지사항 📢
+                        </h3>
+                        <p className="text-gray-600 text-sm">중요한 공지사항을 확인해주세요</p>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {announcementsLoading ? (
+                    <div className="text-center py-8">
+                      <div className="w-8 h-8 border-4 border-red-200 border-t-red-600 rounded-full animate-spin mx-auto mb-2"></div>
+                      <p className="text-red-600">공지사항을 불러오는 중...</p>
+                    </div>
+                  ) : announcements.length === 0 ? (
+                    <div className="text-center py-8">
+                      <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                        <svg className="w-6 h-6 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
+                        </svg>
+                      </div>
+                      <p className="text-red-500">현재 공지사항이 없습니다</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {announcements.map((announcement) => (
+                        <div key={announcement.id} className="bg-gray-50 rounded-xl p-4 border border-gray-200 hover:shadow-sm transition-all duration-200">
+                          <div className="flex items-start justify-between mb-2">
+                            <h4 className="font-semibold text-gray-900 text-lg flex items-center">
+                              <span className="w-2 h-2 bg-red-500 rounded-full mr-3"></span>
+                              {announcement.title}
+                            </h4>
+                            <span className="text-xs text-gray-500 whitespace-nowrap ml-4">
+                              {new Date(announcement.created_at).toLocaleDateString('ko-KR', {
+                                month: 'short',
+                                day: 'numeric'
+                              })}
+                            </span>
+                          </div>
+                          <p className="text-gray-700 leading-relaxed mb-3 pl-5">{announcement.content}</p>
+                          <div className="flex items-center justify-between pl-5">
+                            <span className="text-xs text-gray-500">
+                              {announcement.creator_name} 선생님 • {announcement.creator_class}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
                 {/* 빠른 링크 */}
