@@ -94,7 +94,6 @@ export default async function HallOfFamePage() {
       .eq('status', 'completed')
       .not('scores', 'is', null) // 점수가 있는 세션만
       .order('completed_at', { ascending: false })
-      .limit(100) // 최대 100건
 
     if (!error && sessions) {
       // 우수도 점수 계산 함수
