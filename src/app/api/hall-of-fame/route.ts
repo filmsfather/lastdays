@@ -59,27 +59,34 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // 우수한 점수만 필터링
+    // 우수도 점수 계산 함수
+    const calculateExcellenceScore = (scores) => {
+      const scoreMap = { '상': 4, '중상': 3, '중': 2, '중하': 1, '하': 0 }
+      return Object.values(scores).reduce((sum, score) => sum + (scoreMap[score] || 0), 0)
+    }
+
+    // 우수한 점수만 필터링 (15점 이상)
     const excellentSessions = sessions?.filter(session => {
       const scores = Array.isArray(session.scores) ? session.scores[0] : session.scores
       if (!scores) return false
 
-      const scoreValues = [
-        scores.practical_skills,
-        scores.major_knowledge,
-        scores.major_suitability,
-        scores.attitude
-      ]
-
-      // 모든 점수가 '상' 또는 최대 1개만 '중상'인 경우
-      const 상Count = scoreValues.filter(s => s === '상').length
-      const 중상Count = scoreValues.filter(s => s === '중상').length
-
-      return 상Count >= 3 && (상Count === 4 || 중상Count === 1)
+      const totalScore = calculateExcellenceScore(scores)
+      return totalScore >= 15 // 15점 이상만
     }) || []
 
+    // 점수 기준 정렬 후 상위 30개만 선택
+    const topExcellentSessions = excellentSessions
+      .sort((a, b) => {
+        const scoresA = Array.isArray(a.scores) ? a.scores[0] : a.scores
+        const scoresB = Array.isArray(b.scores) ? b.scores[0] : b.scores
+        const scoreA = calculateExcellenceScore(scoresA)
+        const scoreB = calculateExcellenceScore(scoresB)
+        return scoreB - scoreA // 높은 점수부터
+      })
+      .slice(0, 30) // 상위 30개만
+
     // 응답 데이터 구성
-    const hallOfFameData = excellentSessions.map(session => {
+    const hallOfFameData = topExcellentSessions.map(session => {
       const scores = Array.isArray(session.scores) ? session.scores[0] : session.scores
       const problem = Array.isArray(session.problem) ? session.problem[0] : session.problem
       return {
