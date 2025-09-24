@@ -196,6 +196,10 @@ DECLARE
     v_reservation RECORD;
     v_slot_id INTEGER;
     v_student_id INTEGER;
+    v_slot_date DATE;
+    v_slot_time TIME;
+    v_reservation_datetime TIMESTAMP;
+    v_cancellation_deadline TIMESTAMP;
 BEGIN
     -- 예약 존재 확인
     SELECT id, student_id, slot_id, status
@@ -222,6 +226,23 @@ BEGIN
             WHERE id = p_user_id AND role = 'admin'
         ) THEN
             RAISE EXCEPTION 'insufficient_permission';
+        END IF;
+    END IF;
+    
+    -- 3시간 이내 취소 제한 확인 (관리자는 제외)
+    IF v_student_id = p_user_id THEN  -- 학생 본인인 경우만
+        -- 슬롯의 날짜와 시간 정보 조회
+        SELECT rs.date, rs.time_slot 
+        INTO v_slot_date, v_slot_time
+        FROM reservation_slots rs
+        WHERE rs.id = v_slot_id;
+        
+        -- 예약 시간 3시간 전 계산
+        v_reservation_datetime := v_slot_date + v_slot_time::time;
+        v_cancellation_deadline := v_reservation_datetime - INTERVAL '3 hours';
+        
+        IF NOW() > v_cancellation_deadline THEN
+            RAISE EXCEPTION 'cancellation_too_late';
         END IF;
     END IF;
     

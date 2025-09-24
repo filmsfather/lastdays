@@ -375,6 +375,11 @@ export async function DELETE(
           { error: '해당 예약에 대한 권한이 없습니다.' },
           { status: 403 }
         )
+      } else if (error.message.includes('cancellation_too_late')) {
+        return NextResponse.json(
+          { error: '예약 시간 3시간 전까지만 취소할 수 있습니다.' },
+          { status: 400 }
+        )
       } else {
         return NextResponse.json(
           { error: '예약 취소 중 오류가 발생했습니다.' },
