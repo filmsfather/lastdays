@@ -99,8 +99,8 @@ export default async function HallOfFamePage() {
     if (!error && sessions) {
       // 우수도 점수 계산 함수
       const calculateExcellenceScore = (scores: any) => {
-        const scoreMap = { '상': 4, '중상': 3, '중': 2, '중하': 1, '하': 0 }
-        return Object.values(scores).reduce((sum: number, score: any) => sum + (scoreMap[score] || 0), 0)
+        const scoreMap = { '상': 4, '중상': 3, '중': 2, '중하': 1, '하': 0 } as const
+        return Object.values(scores).reduce((sum: number, score: any) => sum + (scoreMap[score as keyof typeof scoreMap] || 0), 0)
       }
 
       // 우수한 점수만 필터링 (15점 이상)
