@@ -215,6 +215,40 @@ export default function TimeslotManagement() {
     }
   }
 
+  // 슬롯의 예약들을 취소하는 함수
+  const cancelSlotReservations = async (slot: TimeSlot) => {
+    if (slot.current_reservations === 0) {
+      toast.error('취소할 예약이 없습니다.')
+      return
+    }
+
+    if (!confirm(`${slot.time_slot} 슬롯의 ${slot.current_reservations}개 예약을 모두 취소하시겠습니까?\n⚠️ 학생들에게 이용권이 환불됩니다.`)) return
+
+    try {
+      // 슬롯의 예약 목록 조회 후 취소
+      const response = await fetch(`/api/admin/slots/${slot.id}/reservations`)
+      const data = await response.json()
+      
+      if (data.success && data.reservations.length > 0) {
+        const cancelPromises = data.reservations.map((reservation: any) =>
+          fetch(`/api/reservations/${reservation.id}`, { method: 'DELETE' })
+        )
+        
+        await Promise.all(cancelPromises)
+        toast.success(`${data.reservations.length}개 예약이 취소되었습니다.`)
+        
+        if (selectedTeacher) {
+          fetchWeekSlots(selectedTeacher)
+        }
+      } else {
+        toast.error('예약 정보를 가져올 수 없습니다.')
+      }
+    } catch (error) {
+      console.error('예약 취소 실패:', error)
+      toast.error('예약 취소 중 오류가 발생했습니다.')
+    }
+  }
+
   const deleteSelectedSlots = async () => {
     const slotsToDelete = timeSlots.filter(slot => selectedSlots.has(slot.id))
     const slotsWithReservations = slotsToDelete.filter(slot => slot.current_reservations > 0)
@@ -669,14 +703,18 @@ export default function TimeslotManagement() {
                                       >
                                         {slot.is_available ? '⏸' : '▶'}
                                       </button>
+                                      {slot.current_reservations > 0 && (
+                                        <button
+                                          onClick={() => cancelSlotReservations(slot)}
+                                          className="w-4 h-4 rounded text-xs flex items-center justify-center bg-orange-300 hover:bg-orange-400"
+                                          title="예약 취소"
+                                        >
+                                          ❌
+                                        </button>
+                                      )}
                                       <button
                                         onClick={() => deleteTimeSlot(slot)}
-                                        disabled={slot.current_reservations > 0}
-                                        className={`w-4 h-4 rounded text-xs flex items-center justify-center ${
-                                          slot.current_reservations > 0
-                                            ? 'bg-gray-300 cursor-not-allowed' 
-                                            : 'bg-red-300 hover:bg-red-400'
-                                        }`}
+                                        className="w-4 h-4 rounded text-xs flex items-center justify-center bg-red-300 hover:bg-red-400"
                                         title="슬롯 삭제"
                                       >
                                         ×
@@ -751,14 +789,18 @@ export default function TimeslotManagement() {
                                       >
                                         {slot.is_available ? '⏸' : '▶'}
                                       </button>
+                                      {slot.current_reservations > 0 && (
+                                        <button
+                                          onClick={() => cancelSlotReservations(slot)}
+                                          className="w-4 h-4 rounded text-xs flex items-center justify-center bg-orange-300 hover:bg-orange-400"
+                                          title="예약 취소"
+                                        >
+                                          ❌
+                                        </button>
+                                      )}
                                       <button
                                         onClick={() => deleteTimeSlot(slot)}
-                                        disabled={slot.current_reservations > 0}
-                                        className={`w-4 h-4 rounded text-xs flex items-center justify-center ${
-                                          slot.current_reservations > 0
-                                            ? 'bg-gray-300 cursor-not-allowed' 
-                                            : 'bg-red-300 hover:bg-red-400'
-                                        }`}
+                                        className="w-4 h-4 rounded text-xs flex items-center justify-center bg-red-300 hover:bg-red-400"
                                         title="슬롯 삭제"
                                       >
                                         ×
