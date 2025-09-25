@@ -251,9 +251,17 @@ export default function TimeslotManagement() {
       const responses = await Promise.all(deletePromises)
       const results = await Promise.all(responses.map(r => r.json()))
       
+      // 디버깅용 로그
+      console.log('Delete results:', results)
+      console.log('Slots to delete:', slotsToDelete.length)
+      
       const successCount = results.filter(r => r.success).length
       const totalCancelled = results.reduce((sum, r) => sum + (r.cancelled_reservations || 0), 0)
       const totalAffectedStudents = results.reduce((sum, r) => sum + (r.affected_students || 0), 0)
+      
+      console.log('Success count:', successCount)
+      console.log('Total cancelled:', totalCancelled)
+      console.log('Affected students:', totalAffectedStudents)
       
       if (force && totalCancelled > 0) {
         toast.success(`${successCount}개 슬롯이 삭제되고 ${totalCancelled}개 예약이 취소되었습니다. (${totalAffectedStudents}명 학생 이용권 환불)`)

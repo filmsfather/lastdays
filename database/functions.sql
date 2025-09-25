@@ -438,7 +438,7 @@ $$ LANGUAGE plpgsql;
 -- 관리자용 강제 슬롯 삭제 함수 (예약 자동 취소 포함)
 CREATE OR REPLACE FUNCTION admin_force_remove_time_slot(
     p_date DATE,
-    p_time_slot TIME,
+    p_time_slot TEXT,
     p_teacher_id INTEGER,
     p_admin_id INTEGER
 ) RETURNS JSON AS $$
@@ -455,7 +455,7 @@ BEGIN
     -- 슬롯 존재 확인
     SELECT EXISTS(
         SELECT 1 FROM reservation_slots 
-        WHERE date = p_date AND time_slot = p_time_slot AND teacher_id = p_teacher_id
+        WHERE date = p_date AND time_slot = p_time_slot::TIME AND teacher_id = p_teacher_id
     ) INTO v_slot_exists;
     
     IF NOT v_slot_exists THEN
@@ -469,7 +469,7 @@ BEGIN
             updated_at = NOW()
         WHERE slot_id IN (
             SELECT id FROM reservation_slots 
-            WHERE date = p_date AND time_slot = p_time_slot AND teacher_id = p_teacher_id
+            WHERE date = p_date AND time_slot = p_time_slot::TIME AND teacher_id = p_teacher_id
         ) AND status = 'active'
         RETURNING student_id
     )
@@ -487,7 +487,7 @@ BEGIN
     
     -- 3단계: 슬롯 삭제
     DELETE FROM reservation_slots 
-    WHERE date = p_date AND time_slot = p_time_slot AND teacher_id = p_teacher_id;
+    WHERE date = p_date AND time_slot = p_time_slot::TIME AND teacher_id = p_teacher_id;
     
     -- 결과 반환
     RETURN json_build_object(

@@ -19,6 +19,8 @@ export async function DELETE(request: NextRequest) {
     const teacherId = searchParams.get('teacher_id')
     const force = searchParams.get('force') === 'true'
 
+    console.log('DELETE request params:', { date, timeSlot, teacherId, force })
+
     if (!date || !timeSlot || !teacherId) {
       return NextResponse.json(
         { error: '날짜, 시간, 교사 ID가 필요합니다.' },
