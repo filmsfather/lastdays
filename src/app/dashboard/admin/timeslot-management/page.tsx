@@ -177,24 +177,32 @@ export default function TimeslotManagement() {
     }
   }
 
-  const deleteTimeSlot = async (slot: TimeSlot) => {
-    if (slot.current_reservations > 0) {
-      toast.error('예약이 있는 슬롯은 삭제할 수 없습니다.')
-      return
+  const deleteTimeSlot = async (slot: TimeSlot, force: boolean = false) => {
+    let confirmMessage = `${slot.time_slot} 슬롯을 삭제하시겠습니까?`
+    
+    if (slot.current_reservations > 0 && !force) {
+      const forceConfirm = confirm(`${slot.time_slot} 슬롯에 ${slot.current_reservations}개의 예약이 있습니다. 강제 삭제하시겠습니까?\n\n⚠️ 예약이 모두 취소되고 학생들에게 이용권이 환불됩니다.`)
+      if (!forceConfirm) return
+      
+      confirmMessage = `${slot.time_slot} 슬롯을 강제 삭제하시겠습니까?`
+      force = true
     }
 
-    if (!confirm(`${slot.time_slot} 슬롯을 삭제하시겠습니까?`)) return
+    if (!confirm(confirmMessage)) return
 
     try {
-      const response = await fetch(
-        `/api/admin/slots/manage-timeslots?date=${slot.date}&time_slot=${slot.time_slot}&teacher_id=${slot.teacher_id}`,
-        { method: 'DELETE' }
-      )
-
+      const url = `/api/admin/slots/manage-timeslots?date=${slot.date}&time_slot=${slot.time_slot}&teacher_id=${slot.teacher_id}${force ? '&force=true' : ''}`
+      
+      const response = await fetch(url, { method: 'DELETE' })
       const data = await response.json()
 
       if (data.success) {
-        toast.success('타임슬롯이 삭제되었습니다.')
+        if (force && data.cancelled_reservations > 0) {
+          toast.success(`타임슬롯이 삭제되고 ${data.cancelled_reservations}개 예약이 취소되었습니다. (${data.affected_students}명 학생 이용권 환불)`)
+        } else {
+          toast.success('타임슬롯이 삭제되었습니다.')
+        }
+        
         if (selectedTeacher) {
           fetchWeekSlots(selectedTeacher)
         }
@@ -211,28 +219,48 @@ export default function TimeslotManagement() {
     const slotsToDelete = timeSlots.filter(slot => selectedSlots.has(slot.id))
     const slotsWithReservations = slotsToDelete.filter(slot => slot.current_reservations > 0)
     
-    if (slotsWithReservations.length > 0) {
-      toast.error('예약이 있는 슬롯은 삭제할 수 없습니다.')
-      return
-    }
-
     if (slotsToDelete.length === 0) {
       toast.error('삭제할 슬롯을 선택해주세요.')
       return
     }
 
-    if (!confirm(`선택한 ${slotsToDelete.length}개 슬롯을 삭제하시겠습니까?`)) return
+    let force = false
+    let confirmMessage = `선택한 ${slotsToDelete.length}개 슬롯을 삭제하시겠습니까?`
+    
+    if (slotsWithReservations.length > 0) {
+      const totalReservations = slotsWithReservations.reduce((sum, slot) => sum + slot.current_reservations, 0)
+      const forceConfirm = confirm(
+        `선택한 슬롯 중 ${slotsWithReservations.length}개에 총 ${totalReservations}개의 예약이 있습니다.\n\n강제 삭제하시겠습니까?\n⚠️ 모든 예약이 취소되고 학생들에게 이용권이 환불됩니다.`
+      )
+      if (!forceConfirm) return
+      
+      confirmMessage = `선택한 ${slotsToDelete.length}개 슬롯을 강제 삭제하시겠습니까?`
+      force = true
+    }
+
+    if (!confirm(confirmMessage)) return
 
     try {
       const deletePromises = slotsToDelete.map(slot =>
         fetch(
-          `/api/admin/slots/manage-timeslots?date=${slot.date}&time_slot=${slot.time_slot}&teacher_id=${slot.teacher_id}`,
+          `/api/admin/slots/manage-timeslots?date=${slot.date}&time_slot=${slot.time_slot}&teacher_id=${slot.teacher_id}${force ? '&force=true' : ''}`,
           { method: 'DELETE' }
         )
       )
 
-      await Promise.all(deletePromises)
-      toast.success(`${slotsToDelete.length}개 슬롯이 삭제되었습니다.`)
+      const responses = await Promise.all(deletePromises)
+      const results = await Promise.all(responses.map(r => r.json()))
+      
+      const successCount = results.filter(r => r.success).length
+      const totalCancelled = results.reduce((sum, r) => sum + (r.cancelled_reservations || 0), 0)
+      const totalAffectedStudents = results.reduce((sum, r) => sum + (r.affected_students || 0), 0)
+      
+      if (force && totalCancelled > 0) {
+        toast.success(`${successCount}개 슬롯이 삭제되고 ${totalCancelled}개 예약이 취소되었습니다. (${totalAffectedStudents}명 학생 이용권 환불)`)
+      } else {
+        toast.success(`${successCount}개 슬롯이 삭제되었습니다.`)
+      }
+      
       setSelectedSlots(new Set())
       if (selectedTeacher) {
         fetchWeekSlots(selectedTeacher)

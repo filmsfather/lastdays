@@ -434,3 +434,71 @@ EXCEPTION
         RAISE;
 END;
 $$ LANGUAGE plpgsql;
+
+-- 관리자용 강제 슬롯 삭제 함수 (예약 자동 취소 포함)
+CREATE OR REPLACE FUNCTION admin_force_remove_time_slot(
+    p_date DATE,
+    p_time_slot TIME,
+    p_teacher_id INTEGER,
+    p_admin_id INTEGER
+) RETURNS JSON AS $$
+DECLARE
+    v_affected_reservations INTEGER;
+    v_student_ids INTEGER[];
+    v_slot_exists BOOLEAN;
+BEGIN
+    -- 관리자 권한 확인
+    IF NOT EXISTS (SELECT 1 FROM accounts WHERE id = p_admin_id AND role = 'admin') THEN
+        RAISE EXCEPTION 'admin_permission_required';
+    END IF;
+    
+    -- 슬롯 존재 확인
+    SELECT EXISTS(
+        SELECT 1 FROM reservation_slots 
+        WHERE date = p_date AND time_slot = p_time_slot AND teacher_id = p_teacher_id
+    ) INTO v_slot_exists;
+    
+    IF NOT v_slot_exists THEN
+        RAISE EXCEPTION 'slot_not_found';
+    END IF;
+    
+    -- 1단계: 해당 슬롯의 모든 활성 예약을 관리자에 의해 취소
+    WITH cancelled_reservations AS (
+        UPDATE reservations 
+        SET status = 'cancelled_by_admin', 
+            updated_at = NOW()
+        WHERE slot_id IN (
+            SELECT id FROM reservation_slots 
+            WHERE date = p_date AND time_slot = p_time_slot AND teacher_id = p_teacher_id
+        ) AND status = 'active'
+        RETURNING student_id
+    )
+    SELECT COUNT(*), ARRAY_AGG(student_id) 
+    INTO v_affected_reservations, v_student_ids
+    FROM cancelled_reservations;
+    
+    -- 2단계: 취소된 예약에 대해 학생들 이용권 환불 (최대 10개 제한)
+    IF v_student_ids IS NOT NULL THEN
+        UPDATE accounts 
+        SET current_tickets = LEAST(COALESCE(current_tickets, 0) + 1, 10),
+            updated_at = NOW()
+        WHERE id = ANY(v_student_ids);
+    END IF;
+    
+    -- 3단계: 슬롯 삭제
+    DELETE FROM reservation_slots 
+    WHERE date = p_date AND time_slot = p_time_slot AND teacher_id = p_teacher_id;
+    
+    -- 결과 반환
+    RETURN json_build_object(
+        'success', true,
+        'cancelled_reservations', COALESCE(v_affected_reservations, 0),
+        'affected_students', COALESCE(v_student_ids, ARRAY[]::INTEGER[]),
+        'message', '슬롯이 삭제되고 ' || COALESCE(v_affected_reservations, 0) || '개 예약이 취소되었습니다.'
+    );
+    
+EXCEPTION
+    WHEN OTHERS THEN
+        RAISE;
+END;
+$$ LANGUAGE plpgsql;

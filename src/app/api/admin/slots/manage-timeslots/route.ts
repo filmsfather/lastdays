@@ -17,6 +17,7 @@ export async function DELETE(request: NextRequest) {
     const date = searchParams.get('date')
     const timeSlot = searchParams.get('time_slot')
     const teacherId = searchParams.get('teacher_id')
+    const force = searchParams.get('force') === 'true'
 
     if (!date || !timeSlot || !teacherId) {
       return NextResponse.json(
@@ -25,21 +26,54 @@ export async function DELETE(request: NextRequest) {
       )
     }
 
-    // PostgreSQL 함수 호출로 타임슬롯 삭제
-    const { data: result, error } = await supabase
-      .rpc('remove_time_slot', {
-        p_date: date,
-        p_time_slot: timeSlot,
-        p_teacher_id: parseInt(teacherId)
-      })
+    let result, error
+
+    if (force) {
+      // 관리자 강제 삭제 (예약 자동 취소)
+      const { data: forceResult, error: forceError } = await supabase
+        .rpc('admin_force_remove_time_slot', {
+          p_date: date,
+          p_time_slot: timeSlot,
+          p_teacher_id: parseInt(teacherId),
+          p_admin_id: currentUser.id
+        })
+      
+      result = forceResult
+      error = forceError
+    } else {
+      // 일반 삭제 (예약이 있으면 실패)
+      const { data: normalResult, error: normalError } = await supabase
+        .rpc('remove_time_slot', {
+          p_date: date,
+          p_time_slot: timeSlot,
+          p_teacher_id: parseInt(teacherId)
+        })
+      
+      result = normalResult
+      error = normalError
+    }
 
     if (error) {
       console.error('Error removing time slot:', error)
       
       if (error.message.includes('cannot_delete_slot_with_reservations')) {
         return NextResponse.json(
-          { error: '예약이 있는 슬롯은 삭제할 수 없습니다.' },
+          { error: '예약이 있는 슬롯은 삭제할 수 없습니다. 강제 삭제를 원한다면 force=true 옵션을 사용하세요.' },
           { status: 400 }
+        )
+      }
+      
+      if (error.message.includes('admin_permission_required')) {
+        return NextResponse.json(
+          { error: '관리자 권한이 필요합니다.' },
+          { status: 403 }
+        )
+      }
+      
+      if (error.message.includes('slot_not_found')) {
+        return NextResponse.json(
+          { error: '삭제할 슬롯을 찾을 수 없습니다.' },
+          { status: 404 }
         )
       }
       
@@ -56,10 +90,21 @@ export async function DELETE(request: NextRequest) {
       )
     }
 
-    return NextResponse.json({
-      success: true,
-      message: '타임슬롯이 삭제되었습니다.'
-    })
+    if (force && result.success) {
+      // 강제 삭제 결과 반환
+      return NextResponse.json({
+        success: true,
+        message: result.message,
+        cancelled_reservations: result.cancelled_reservations,
+        affected_students: result.affected_students?.length || 0
+      })
+    } else {
+      // 일반 삭제 결과 반환
+      return NextResponse.json({
+        success: true,
+        message: '타임슬롯이 삭제되었습니다.'
+      })
+    }
 
   } catch (error) {
     console.error('Delete timeslot error:', error)
