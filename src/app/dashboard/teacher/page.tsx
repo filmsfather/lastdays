@@ -11,19 +11,6 @@ interface User {
   role: string
 }
 
-interface Problem {
-  id: number
-  title: string
-  limit_minutes: number
-  available_date: string
-  preview_lead_time: number
-  status: 'draft' | 'published' | 'archived'
-  created_at: string
-  updated_at: string
-  creator?: {
-    name: string
-  }
-}
 
 interface DashboardStats {
   total_problems: number
@@ -45,8 +32,6 @@ interface Announcement {
 
 export default function TeacherDashboardPage() {
   const [user, setUser] = useState<User | null>(null)
-  const [activeTab, setActiveTab] = useState<'overview' | 'problems'>('overview')
-  const [problems, setProblems] = useState<Problem[]>([])
   const [stats, setStats] = useState<DashboardStats>({
     total_problems: 0,
     public_problems: 0,
@@ -99,7 +84,6 @@ export default function TeacherDashboardPage() {
       setLoading(true)
       try {
         await Promise.all([
-          fetchProblems(),
           fetchStats(),
           fetchAnnouncements()
         ])
@@ -114,25 +98,6 @@ export default function TeacherDashboardPage() {
     loadData()
   }, [user])
 
-  // 문제 목록 조회
-  const fetchProblems = async () => {
-    try {
-      const response = await fetch('/api/teacher/problems', {
-        credentials: 'include'  // 쿠키 포함
-      })
-      const data = await response.json()
-      
-      if (data.success) {
-        // 공개날짜 기준으로 내림차순 정렬 (최신이 위, 오래된 것이 아래)
-        const sortedProblems = data.problems.sort((a: Problem, b: Problem) => {
-          return new Date(b.available_date).getTime() - new Date(a.available_date).getTime()
-        })
-        setProblems(sortedProblems)
-      }
-    } catch (error) {
-      console.error('문제 조회 실패:', error)
-    }
-  }
 
   // 통계 조회
   const fetchStats = async () => {
@@ -171,34 +136,6 @@ export default function TeacherDashboardPage() {
     }
   }
 
-  // 문제 공개/비공개 토글
-  const toggleProblemVisibility = async (problemId: number, isPublic: boolean) => {
-    try {
-      const response = await fetch(`/api/teacher/problems/${problemId}/publish`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',  // 쿠키 포함
-        body: JSON.stringify({
-          status: isPublic ? 'draft' : 'published'
-        }),
-      })
-
-      const data = await response.json()
-
-      if (data.success) {
-        toast.success(isPublic ? '문제가 비공개로 변경되었습니다.' : '문제가 공개되었습니다.')
-        await fetchProblems()
-        await fetchStats()
-      } else {
-        toast.error(data.error || '상태 변경에 실패했습니다.')
-      }
-    } catch (error) {
-      console.error('문제 상태 변경 실패:', error)
-      toast.error('오류가 발생했습니다.')
-    }
-  }
 
   // PIN 변경
   const changePin = async () => {
@@ -244,22 +181,6 @@ export default function TeacherDashboardPage() {
     }
   }
 
-  // 날짜 포맷팅 (YYYY-MM-DD 형식을 MM/DD로 표시)
-  const formatAvailableDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('ko-KR', {
-      month: 'numeric',
-      day: 'numeric'
-    })
-  }
-
-  // 날짜 포맷팅
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('ko-KR', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    })
-  }
 
   if (loading) {
     return (
@@ -304,6 +225,12 @@ export default function TeacherDashboardPage() {
                 내 스케줄 관리
               </Link>
               <Link 
+                href="/dashboard/teacher/problems"
+                className="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors"
+              >
+                문제 관리
+              </Link>
+              <Link 
                 href="/dashboard/teacher/students"
                 className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
               >
@@ -311,7 +238,7 @@ export default function TeacherDashboardPage() {
               </Link>
               <Link 
                 href="/dashboard/teacher/reservations"
-                className="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors"
+                className="px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition-colors"
               >
                 예약 현황
               </Link>
@@ -325,37 +252,10 @@ export default function TeacherDashboardPage() {
           </div>
         </div>
 
-        {/* 탭 네비게이션 */}
+        {/* 대시보드 개요 */}
         <div className="bg-white rounded-lg shadow-md mb-6">
-          <div className="border-b border-gray-200">
-            <nav className="flex space-x-8 px-6">
-              <button
-                onClick={() => setActiveTab('overview')}
-                className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
-                  activeTab === 'overview'
-                    ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
-              >
-                대시보드 개요
-              </button>
-              <button
-                onClick={() => setActiveTab('problems')}
-                className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
-                  activeTab === 'problems'
-                    ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
-              >
-                문제 관리
-              </button>
-            </nav>
-          </div>
-
-          {/* 탭 내용 */}
           <div className="p-6">
-            {activeTab === 'overview' && (
-              <div className="space-y-6">
+            <div className="space-y-6">
                 {/* 공지사항 */}
                 <div className="bg-white rounded-lg border p-6">
                   <div className="flex items-center justify-between mb-4">
@@ -479,13 +379,13 @@ export default function TeacherDashboardPage() {
                       <div className="text-green-600 font-medium">👥</div>
                       <p className="text-sm text-green-800 mt-2">학생 관리</p>
                     </Link>
-                    <button
-                      onClick={() => setActiveTab('problems')}
+                    <Link
+                      href="/dashboard/teacher/problems"
                       className="p-4 bg-orange-50 rounded-lg hover:bg-orange-100 transition-colors text-center"
                     >
                       <div className="text-orange-600 font-medium">📝</div>
                       <p className="text-sm text-orange-800 mt-2">문제 관리</p>
-                    </button>
+                    </Link>
                     <Link
                       href="/dashboard/teacher/reservations"
                       className="p-4 bg-yellow-50 rounded-lg hover:bg-yellow-100 transition-colors text-center"
@@ -517,155 +417,6 @@ export default function TeacherDashboardPage() {
                   </div>
                 </div>
               </div>
-            )}
-
-            {activeTab === 'problems' && (
-              <div className="space-y-6">
-                {/* 문제 관리 헤더 */}
-                <div className="flex justify-between items-center">
-                  <div>
-                    <h3 className="text-lg font-semibold text-gray-800">문제 목록</h3>
-                    <p className="text-gray-600">등록한 문제들을 관리할 수 있습니다</p>
-                  </div>
-                  <div className="space-x-3">
-                    <button
-                      onClick={() => window.location.href = '/teacher/problems/new'}
-                      className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
-                    >
-                      새 문제 등록
-                    </button>
-                    <button
-                      onClick={fetchProblems}
-                      className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors"
-                    >
-                      새로고침
-                    </button>
-                  </div>
-                </div>
-
-                {/* 문제 목록 */}
-                {problems.length === 0 ? (
-                  <div className="bg-white border rounded-lg p-8 text-center">
-                    <div className="text-gray-400 mb-4">
-                      <svg className="mx-auto h-12 w-12" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z" />
-                      </svg>
-                    </div>
-                    <h4 className="text-lg font-medium text-gray-600 mb-2">
-                      등록된 문제가 없습니다
-                    </h4>
-                    <p className="text-gray-500 mb-4">
-                      새로운 문제를 등록해서 학생들에게 제공해보세요
-                    </p>
-                    <button
-                      onClick={() => window.location.href = '/teacher/problems/new'}
-                      className="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
-                    >
-                      첫 문제 등록하기
-                    </button>
-                  </div>
-                ) : (
-                  <div className="bg-white rounded-lg border overflow-hidden">
-                    <div className="overflow-x-auto">
-                      <table className="min-w-full divide-y divide-gray-200">
-                        <thead className="bg-gray-50">
-                          <tr>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                              문제 정보
-                            </th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                              작성자
-                            </th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                              공개 날짜
-                            </th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                              사전열람
-                            </th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                              활성 상태
-                            </th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                              등록일
-                            </th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                              관리
-                            </th>
-                          </tr>
-                        </thead>
-                        <tbody className="bg-white divide-y divide-gray-200">
-                          {problems.map((problem) => (
-                            <tr key={problem.id} className="hover:bg-gray-50">
-                              <td className="px-6 py-4 whitespace-nowrap">
-                                <div>
-                                  <div className="text-sm font-medium text-gray-900">
-                                    {problem.title}
-                                  </div>
-                                  <div className="text-sm text-gray-500">
-                                    ID: {problem.id}
-                                  </div>
-                                </div>
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap">
-                                <span className="text-sm font-medium text-blue-600">
-                                  {problem.creator?.name || '알 수 없음'}
-                                </span>
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap">
-                                <span className="text-sm text-gray-500">
-                                  {formatAvailableDate(problem.available_date)}
-                                </span>
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap">
-                                <span className="text-sm text-gray-500">
-                                  {problem.preview_lead_time}분 전
-                                </span>
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap">
-                                <button
-                                  onClick={() => toggleProblemVisibility(problem.id, problem.status === 'published')}
-                                  className={`relative inline-flex items-center h-6 rounded-full w-11 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors ${
-                                    problem.status === 'published' ? 'bg-green-600' : 'bg-gray-200'
-                                  }`}
-                                >
-                                  <span
-                                    className={`inline-block w-4 h-4 transform bg-white rounded-full transition-transform ${
-                                      problem.status === 'published' ? 'translate-x-6' : 'translate-x-1'
-                                    }`}
-                                  />
-                                </button>
-                                <div className="text-xs text-gray-500 mt-1">
-                                  {problem.status === 'published' ? '활성' : problem.status === 'draft' ? '비활성' : '보관'}
-                                </div>
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap">
-                                <span className="text-sm text-gray-500">
-                                  {formatDate(problem.created_at)}
-                                </span>
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
-                                <button
-                                  onClick={() => window.location.href = `/teacher/problems/${problem.id}`}
-                                  className="text-blue-600 hover:text-blue-900"
-                                >
-                                  보기
-                                </button>
-                                <button
-                                  onClick={() => window.location.href = `/teacher/problems/${problem.id}`}
-                                  className="text-gray-600 hover:text-gray-900"
-                                >
-                                  수정
-                                </button>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
           </div>
         </div>
 
@@ -674,8 +425,8 @@ export default function TeacherDashboardPage() {
           <h4 className="font-medium text-blue-800 mb-2">도움말</h4>
           <div className="text-sm text-blue-700 space-y-1">
             <p>• <strong>대시보드 개요</strong>: 오늘의 수업 현황과 전체 통계를 확인할 수 있습니다</p>
-            <p>• <strong>문제 관리</strong>: 등록한 문제의 활성/비활성 상태를 관리하고 제한시간, 공개날짜, 사전열람시간을 확인할 수 있습니다</p>
-            <p>• 활성 상태의 문제만 학생들이 선택할 수 있으며, 비활성 문제는 목록에 표시되지 않습니다</p>
+            <p>• <strong>빠른 바로가기</strong>: 문제 관리, 학생 관리, 예약 현황 등 주요 기능에 빠르게 접근할 수 있습니다</p>
+            <p>• 상단 네비게이션 버튼을 통해 각 관리 페이지로 이동할 수 있습니다</p>
           </div>
         </div>
       </div>
