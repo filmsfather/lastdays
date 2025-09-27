@@ -49,6 +49,7 @@ function AdminDashboard() {
   const [grantAmount, setGrantAmount] = useState<number>(1)
   const [grantReason, setGrantReason] = useState<string>('')
   const [weeklyTicketAmount, setWeeklyTicketAmount] = useState(10)
+  const [resettingTickets, setResettingTickets] = useState(false)
   const [showGrantModal, setShowGrantModal] = useState(false)
   const [showAddAccountModal, setShowAddAccountModal] = useState(false)
   const [showCreateSlotsModal, setShowCreateSlotsModal] = useState(false)
@@ -310,6 +311,44 @@ function AdminDashboard() {
       fetchAccounts() // 데이터 새로고침
     } catch (err) {
       alert(err instanceof Error ? err.message : '오류가 발생했습니다.')
+    }
+  }
+
+  const handleResetAllTickets = async () => {
+    const studentCount = accounts.filter(account => account.role === 'student').length
+    const totalTickets = ticketStats?.totalTickets || 0
+    
+    if (!confirm(
+      `정말로 모든 학생의 이용권을 초기화하시겠습니까?\n\n` +
+      `대상: ${studentCount}명의 학생\n` +
+      `현재 총 이용권: ${totalTickets}장\n` +
+      `초기화 후: 0장\n\n` +
+      `이 작업은 되돌릴 수 없습니다.`
+    )) {
+      return
+    }
+
+    try {
+      setResettingTickets(true)
+      const response = await fetch('/api/admin/tickets/reset', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || '이용권 초기화에 실패했습니다.')
+      }
+
+      alert(`${data.message}\n초기화된 이용권: ${data.reset.totalTicketsBefore}장 → 0장`)
+      fetchAccounts() // 데이터 새로고침
+    } catch (err) {
+      alert(err instanceof Error ? err.message : '오류가 발생했습니다.')
+    } finally {
+      setResettingTickets(false)
     }
   }
 
@@ -701,6 +740,13 @@ function AdminDashboard() {
                 className="w-full px-6 py-2 bg-green-600 text-white rounded hover:bg-green-700"
               >
                 개별 발급
+              </button>
+              <button
+                onClick={handleResetAllTickets}
+                disabled={resettingTickets || !ticketStats || ticketStats.totalStudents === 0}
+                className="w-full px-6 py-2 bg-red-600 text-white rounded hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {resettingTickets ? '초기화 중...' : '전체 이용권 초기화 (0장)'}
               </button>
             </div>
           </div>
