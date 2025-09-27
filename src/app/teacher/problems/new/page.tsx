@@ -44,7 +44,7 @@ export default function NewProblemPage() {
 
       if (data.success) {
         toast.success('문제가 성공적으로 등록되었습니다!')
-        window.location.href = '/dashboard/teacher'
+        window.location.href = '/dashboard/teacher/problems'
       } else {
         toast.error(data.error || '문제 등록에 실패했습니다.')
       }
@@ -134,10 +134,10 @@ export default function NewProblemPage() {
             <div>
               <div className="flex items-center space-x-2 mb-2">
                 <Link 
-                  href="/dashboard/teacher"
+                  href="/dashboard/teacher/problems"
                   className="text-blue-600 hover:text-blue-800"
                 >
-                  ← 대시보드
+                  ← 문제 관리
                 </Link>
               </div>
               <h1 className="text-2xl font-bold text-gray-800">
@@ -312,7 +312,7 @@ export default function NewProblemPage() {
             {/* 버튼 */}
             <div className="flex justify-between pt-6 border-t">
               <Link
-                href="/dashboard/teacher"
+                href="/dashboard/teacher/problems"
                 className="px-6 py-3 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
               >
                 취소

@@ -81,7 +81,7 @@ export default function ProblemDetailPage({ params }: Props) {
         }
       } else {
         toast.error('문제를 불러올 수 없습니다.')
-        window.location.href = '/dashboard/teacher'
+        window.location.href = '/dashboard/teacher/problems'
       }
     } catch (error) {
       console.error('문제 조회 실패:', error)
@@ -307,10 +307,10 @@ export default function ProblemDetailPage({ params }: Props) {
         <div className="text-center">
           <h2 className="text-2xl font-bold text-gray-800 mb-4">문제를 찾을 수 없습니다</h2>
           <Link
-            href="/dashboard/teacher"
+            href="/dashboard/teacher/problems"
             className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
           >
-            대시보드로 돌아가기
+            문제 관리로 돌아가기
           </Link>
         </div>
       </div>
@@ -326,10 +326,10 @@ export default function ProblemDetailPage({ params }: Props) {
             <div>
               <div className="flex items-center space-x-2 mb-2">
                 <Link 
-                  href="/dashboard/teacher"
+                  href="/dashboard/teacher/problems"
                   className="text-blue-600 hover:text-blue-800"
                 >
-                  ← 대시보드
+                  ← 문제 관리
                 </Link>
               </div>
               <h1 className="text-2xl font-bold text-gray-800 mb-2">
@@ -596,7 +596,7 @@ export default function ProblemDetailPage({ params }: Props) {
         {/* 액션 버튼 */}
         <div className="mt-6 flex justify-center space-x-4">
           <Link
-            href="/dashboard/teacher"
+            href="/dashboard/teacher/problems"
             className="px-6 py-3 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
           >
             목록으로 돌아가기

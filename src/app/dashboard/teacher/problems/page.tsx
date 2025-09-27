@@ -216,12 +216,12 @@ export default function ProblemsManagementPage() {
               <p className="text-gray-600">등록한 문제들을 관리할 수 있습니다</p>
             </div>
             <div className="space-x-3">
-              <button
-                onClick={() => window.location.href = '/teacher/problems/new'}
-                className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+              <Link
+                href="/teacher/problems/new"
+                className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors inline-block"
               >
                 새 문제 등록
-              </button>
+              </Link>
               <button
                 onClick={fetchProblems}
                 className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors"
@@ -245,12 +245,12 @@ export default function ProblemsManagementPage() {
               <p className="text-gray-500 mb-4">
                 새로운 문제를 등록해서 학생들에게 제공해보세요
               </p>
-              <button
-                onClick={() => window.location.href = '/teacher/problems/new'}
-                className="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+              <Link
+                href="/teacher/problems/new"
+                className="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors inline-block"
               >
                 첫 문제 등록하기
-              </button>
+              </Link>
             </div>
           ) : (
             <div className="bg-white rounded-lg border overflow-hidden">
