@@ -102,6 +102,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       difficulty_level, 
       subject_area, 
       preview_lead_time,
+      available_date,
       images,
       status
     } = body
@@ -139,6 +140,17 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
         )
       }
       updateData.preview_lead_time = preview_lead_time
+    }
+    if (available_date !== undefined) {
+      // 날짜 형식 검증
+      const dateRegex = /^\d{4}-\d{2}-\d{2}$/
+      if (!dateRegex.test(available_date)) {
+        return NextResponse.json(
+          { error: '공개 날짜는 YYYY-MM-DD 형식이어야 합니다.' },
+          { status: 400 }
+        )
+      }
+      updateData.available_date = available_date
     }
     
     // 이미지 처리
