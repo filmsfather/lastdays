@@ -236,7 +236,7 @@ export default function FeedbackPageClient({ sessionData: initialSessionData, cu
             면접 5분 전입니다
           </div>
           <div className="text-orange-600">
-            면접실 앞에서 대기하세요.
+            '{sessionData.teacher.name}' 선생님 면접실 앞에서 대기하세요.
           </div>
           <div className="text-sm text-orange-500 mt-2">
             면접 시간: {scheduledStart.toLocaleTimeString('ko-KR', { 
