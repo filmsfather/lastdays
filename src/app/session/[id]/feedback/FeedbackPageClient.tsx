@@ -465,7 +465,7 @@ export default function FeedbackPageClient({ sessionData: initialSessionData, cu
           <h2 className="text-xl font-bold text-gray-800 mb-6">문제 정보</h2>
           
           {/* 시간 기반 메시지 또는 문제 내용 표시 */}
-          {!timeStatus.canShow ? (
+          {!timeStatus.canShow && !isTeacher && !isAdmin ? (
             renderTimeBasedMessage()
           ) : sessionData.problemSnapshot ? (
             <div className="space-y-4">

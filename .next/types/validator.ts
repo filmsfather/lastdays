@@ -83,6 +83,12 @@ type RouteHandlerConfig<Route extends AppRouteHandlerRoutes = AppRouteHandlerRou
   handler satisfies AppPageConfig<"/dashboard/teacher">
 }
 
+// Validate ../../src/app/dashboard/teacher/problems/page.tsx
+{
+  const handler = {} as typeof import("../../src/app/dashboard/teacher/problems/page.js")
+  handler satisfies AppPageConfig<"/dashboard/teacher/problems">
+}
+
 // Validate ../../src/app/dashboard/teacher/reservations/page.tsx
 {
   const handler = {} as typeof import("../../src/app/dashboard/teacher/reservations/page.js")

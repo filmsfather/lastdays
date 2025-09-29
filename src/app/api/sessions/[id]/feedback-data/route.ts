@@ -196,11 +196,11 @@ export async function GET(
     
     // 시간 상태 판정
     let timeStatus: 'before_preview' | 'preview_open' | 'waiting_room' | 'interview_ready' | 'session_closed'
-    let canShowProblem = false
+    let canShowProblem = isTeacher || isAdmin // 교사와 관리자는 항상 문제를 볼 수 있음
 
     if (now >= sessionEndTime) {
       timeStatus = 'session_closed'
-      canShowProblem = true // 세션 종료 후에도 문제는 볼 수 있음
+      canShowProblem = true // 세션 종료 후에는 모든 사용자가 문제를 볼 수 있음
 
       // 세션이 종료되었는데 아직 completed 상태가 아니라면 자동으로 업데이트
       if (session.status !== 'completed') {
@@ -223,13 +223,13 @@ export async function GET(
       }
     } else if (now < previewStartTime) {
       timeStatus = 'before_preview'
-      canShowProblem = false
+      if (!isTeacher && !isAdmin) canShowProblem = false
     } else if (now >= previewStartTime && now < waitingRoomTime) {
       timeStatus = 'preview_open'
       canShowProblem = true
     } else if (now >= waitingRoomTime && now < scheduledStartAt) {
       timeStatus = 'waiting_room'
-      canShowProblem = false
+      if (!isTeacher && !isAdmin) canShowProblem = false
     } else {
       timeStatus = 'interview_ready'
       canShowProblem = true
