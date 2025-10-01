@@ -346,6 +346,15 @@ export async function DELETE(
       )
     }
 
+    // 요청 본문에서 confirmLateCancel 파라미터 확인
+    let confirmLateCancel = false
+    try {
+      const body = await request.json()
+      confirmLateCancel = body.confirmLateCancel === true
+    } catch {
+      // 본문이 없거나 JSON이 아닌 경우 기본값 유지
+    }
+
     // 예약 정보 조회 (시간 검증을 위해)
     const { data: reservation, error: fetchError } = await supabase
       .from('reservations')
@@ -381,9 +390,14 @@ export async function DELETE(
         reservation.slot.time_slot
       )
       
-      if (!cancellationCheck.canCancel) {
+      // 3시간 후 취소인데 확인하지 않은 경우 특별 응답
+      if (!cancellationCheck.canCancel && !confirmLateCancel) {
         return NextResponse.json(
-          { error: '예약 시간 3시간 전까지만 취소할 수 있습니다.' },
+          { 
+            error: 'late_cancellation_warning',
+            needsConfirmation: true,
+            message: '이 시간은 다른 학생이 피드백을 받을 수 있었던 귀한 시간입니다. 3시간 전 취소는 이용권이 환불되지 않습니다. 그래도 취소하시겠습니까?'
+          },
           { status: 400 }
         )
       }
@@ -392,7 +406,8 @@ export async function DELETE(
     // 예약 취소 함수 호출
     const { data, error } = await supabase.rpc('cancel_reservation', {
       p_reservation_id: reservationId,
-      p_user_id: currentUser.id
+      p_user_id: currentUser.id,
+      p_confirm_late_cancel: confirmLateCancel
     })
 
     if (error) {
@@ -415,7 +430,11 @@ export async function DELETE(
         )
       } else if (error.message.includes('cancellation_too_late')) {
         return NextResponse.json(
-          { error: '예약 시간 3시간 전까지만 취소할 수 있습니다.' },
+          { 
+            error: 'late_cancellation_warning',
+            needsConfirmation: true,
+            message: '이 시간은 다른 학생이 피드백을 받을 수 있었던 귀한 시간입니다. 3시간 전 취소는 이용권이 환불되지 않습니다. 그래도 취소하시겠습니까?'
+          },
           { status: 400 }
         )
       } else {
@@ -426,10 +445,22 @@ export async function DELETE(
       }
     }
 
+    // 응답 메시지 결정
+    const isLateCancel = data?.is_late_cancel === true
+    const ticketsRefunded = data?.tickets_refunded || 0
+    
+    let message = '예약이 취소되었습니다.'
+    if (ticketsRefunded > 0) {
+      message = '예약이 취소되고 이용권이 환불되었습니다.'
+    } else if (isLateCancel) {
+      message = '예약이 취소되었습니다. 3시간 전 취소로 이용권은 환불되지 않습니다.'
+    }
+
     return NextResponse.json({
       success: true,
-      message: '예약이 취소되고 이용권이 환불되었습니다.',
-      ticketsRefunded: 1
+      message,
+      ticketsRefunded,
+      isLateCancel
     })
 
   } catch (error) {

@@ -373,23 +373,62 @@ export default function StudentDashboard() {
 
   // 예약 취소
   const cancelReservation = async (reservationId: number) => {
-    if (!confirm('예약을 취소하시겠습니까?')) return
-
     try {
+      // 첫 번째 시도 - 일반 취소
       const response = await fetch(`/api/reservations/${reservationId}`, {
         method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
       })
 
       const data = await response.json()
 
       if (data.success) {
-        toast.success('예약이 취소되고 이용권이 환불되었습니다.')
+        // 성공한 경우
+        toast.success(data.message || '예약이 취소되었습니다.')
+        await Promise.all([fetchTickets(), fetchWeekSlots(), fetchReservations()])
+      } else if (data.error === 'late_cancellation_warning' && data.needsConfirmation) {
+        // 3시간 후 취소 경고 - 사용자 확인 필요
+        const userConfirmed = confirm(data.message)
+        
+        if (userConfirmed) {
+          // 사용자가 확인한 경우 - 환불 없이 취소 진행
+          await handleLateCancellation(reservationId)
+        }
+      } else {
+        // 기타 오류
+        toast.error(data.error || '예약 취소에 실패했습니다.')
+      }
+    } catch (error) {
+      console.error('예약 취소 실패:', error)
+      toast.error('예약 취소 중 오류가 발생했습니다.')
+    }
+  }
+
+  // 3시간 후 취소 처리 (환불 없음)
+  const handleLateCancellation = async (reservationId: number) => {
+    try {
+      const response = await fetch(`/api/reservations/${reservationId}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          confirmLateCancel: true
+        })
+      })
+
+      const data = await response.json()
+
+      if (data.success) {
+        toast.success(data.message || '예약이 취소되었습니다.')
         await Promise.all([fetchTickets(), fetchWeekSlots(), fetchReservations()])
       } else {
         toast.error(data.error || '예약 취소에 실패했습니다.')
       }
     } catch (error) {
-      console.error('예약 취소 실패:', error)
+      console.error('늦은 취소 실패:', error)
       toast.error('예약 취소 중 오류가 발생했습니다.')
     }
   }

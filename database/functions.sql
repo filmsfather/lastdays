@@ -187,10 +187,11 @@ EXCEPTION
 END;
 $$ LANGUAGE plpgsql;
 
--- 예약 취소 함수 (티켓 환불 포함)
+-- 예약 취소 함수 (조건부 티켓 환불)
 CREATE OR REPLACE FUNCTION cancel_reservation(
     p_reservation_id INTEGER,
-    p_user_id INTEGER
+    p_user_id INTEGER,
+    p_confirm_late_cancel BOOLEAN DEFAULT FALSE
 ) RETURNS JSON AS $$
 DECLARE
     v_reservation RECORD;
@@ -200,6 +201,9 @@ DECLARE
     v_slot_time TIME;
     v_reservation_datetime TIMESTAMP;
     v_cancellation_deadline TIMESTAMP;
+    v_is_late_cancel BOOLEAN := FALSE;
+    v_tickets_refunded INTEGER := 0;
+    v_message TEXT;
 BEGIN
     -- 예약 존재 확인
     SELECT id, student_id, slot_id, status
@@ -229,7 +233,7 @@ BEGIN
         END IF;
     END IF;
     
-    -- 3시간 이내 취소 제한 확인 (관리자는 제외)
+    -- 3시간 이후 취소 제한 확인 (관리자는 제외)
     IF v_student_id = p_user_id THEN  -- 학생 본인인 경우만
         -- 슬롯의 날짜와 시간 정보 조회
         SELECT rs.date, rs.time_slot 
@@ -241,8 +245,13 @@ BEGIN
         v_reservation_datetime := v_slot_date + v_slot_time::time;
         v_cancellation_deadline := v_reservation_datetime - INTERVAL '3 hours';
         
+        -- 3시간 후 취소인지 확인
         IF NOW() > v_cancellation_deadline THEN
-            RAISE EXCEPTION 'cancellation_too_late';
+            v_is_late_cancel := TRUE;
+            -- 3시간 후 취소 확인 플래그가 없으면 예외 발생
+            IF NOT p_confirm_late_cancel THEN
+                RAISE EXCEPTION 'cancellation_too_late';
+            END IF;
         END IF;
     END IF;
     
@@ -258,16 +267,27 @@ BEGIN
         updated_at = NOW()
     WHERE id = v_slot_id;
     
-    -- 학생 이용권 환불
-    UPDATE accounts 
-    SET current_tickets = current_tickets + 1,
-        updated_at = NOW()
-    WHERE id = v_student_id;
+    -- 조건부 이용권 환불
+    IF NOT v_is_late_cancel OR v_student_id != p_user_id THEN
+        -- 3시간 전 취소이거나 관리자 취소인 경우 환불
+        UPDATE accounts 
+        SET current_tickets = current_tickets + 1,
+            updated_at = NOW()
+        WHERE id = v_student_id;
+        
+        v_tickets_refunded := 1;
+        v_message := 'reservation_cancelled_with_refund';
+    ELSE
+        -- 3시간 후 취소인 경우 환불 없음
+        v_tickets_refunded := 0;
+        v_message := 'reservation_cancelled_no_refund';
+    END IF;
     
     RETURN json_build_object(
         'success', true,
-        'message', 'reservation_cancelled',
-        'tickets_refunded', 1
+        'message', v_message,
+        'tickets_refunded', v_tickets_refunded,
+        'is_late_cancel', v_is_late_cancel
     );
     
 EXCEPTION
