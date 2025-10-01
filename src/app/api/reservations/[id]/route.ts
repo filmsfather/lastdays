@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getCurrentUser } from '@/lib/auth'
 import { supabase } from '@/lib/supabase'
+import { canCancelReservation, canModifyReservation } from '@/lib/dateUtils'
 
 // GET /api/reservations/[id] - 특정 예약 조회
 export async function GET(
@@ -154,15 +155,9 @@ export async function PATCH(
     }
 
     // 전날까지만 수정 가능 확인
-    const reservationDate = new Date(existingReservation.slot.date + 'T00:00:00+09:00')
-    const currentDate = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Seoul' }))
+    const modificationCheck = canModifyReservation(existingReservation.slot.date)
     
-    // 현재 시간이 예약 날짜의 전날 23:59를 지났는지 확인
-    const dayBeforeReservation = new Date(reservationDate)
-    dayBeforeReservation.setDate(dayBeforeReservation.getDate() - 1)
-    dayBeforeReservation.setHours(23, 59, 59, 999)
-
-    if (currentDate > dayBeforeReservation) {
+    if (!modificationCheck.canModify) {
       return NextResponse.json(
         { error: '예약 전날 23:59까지만 수정할 수 있습니다.' },
         { status: 400 }
@@ -349,6 +344,49 @@ export async function DELETE(
         { error: '올바른 예약 ID가 아닙니다.' },
         { status: 400 }
       )
+    }
+
+    // 예약 정보 조회 (시간 검증을 위해)
+    const { data: reservation, error: fetchError } = await supabase
+      .from('reservations')
+      .select(`
+        *,
+        slot:slot_id (
+          date,
+          time_slot
+        )
+      `)
+      .eq('id', reservationId)
+      .single()
+
+    if (fetchError || !reservation) {
+      return NextResponse.json(
+        { error: '예약을 찾을 수 없습니다.' },
+        { status: 404 }
+      )
+    }
+
+    // 권한 확인
+    if (currentUser.role !== 'admin' && reservation.student_id !== currentUser.id) {
+      return NextResponse.json(
+        { error: '해당 예약에 대한 권한이 없습니다.' },
+        { status: 403 }
+      )
+    }
+
+    // 학생 본인인 경우에만 시간 제한 확인 (관리자는 제외)
+    if (currentUser.role !== 'admin' && reservation.student_id === currentUser.id) {
+      const cancellationCheck = canCancelReservation(
+        reservation.slot.date,
+        reservation.slot.time_slot
+      )
+      
+      if (!cancellationCheck.canCancel) {
+        return NextResponse.json(
+          { error: '예약 시간 3시간 전까지만 취소할 수 있습니다.' },
+          { status: 400 }
+        )
+      }
     }
 
     // 예약 취소 함수 호출

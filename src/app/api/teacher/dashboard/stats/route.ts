@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { cookies } from 'next/headers'
+import { getKoreanDateString } from '@/lib/dateUtils'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -57,8 +58,7 @@ export async function GET() {
     }
 
     // 오늘 날짜 (KST)
-    const today = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Seoul' }))
-    const todayString = today.toISOString().split('T')[0]
+    const todayString = getKoreanDateString()
 
     // 병렬로 모든 통계 조회
     const [

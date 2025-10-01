@@ -91,3 +91,74 @@ export const getDaysDifference = (date1: Date | string, date2: Date | string): n
   const timeDiff = date2Only.getTime() - date1Only.getTime()
   return Math.floor(timeDiff / (1000 * 60 * 60 * 24))
 }
+
+/**
+ * 예약 취소 가능 여부 확인 (예약 시간 3시간 전까지)
+ * @param reservationDate 예약 날짜 (YYYY-MM-DD 형식)
+ * @param reservationTime 예약 시간 (HH:MM:SS 형식)
+ * @returns 취소 가능 여부와 마감 시간
+ */
+export const canCancelReservation = (
+  reservationDate: string, 
+  reservationTime: string
+): {
+  canCancel: boolean
+  deadlineTime: Date
+  currentTime: Date
+} => {
+  // 한국 시간 기준 현재 시간
+  const currentTime = getKoreanDate()
+  
+  // 예약 시간을 한국 시간으로 생성
+  const reservationDateTime = toZonedTime(
+    new Date(`${reservationDate}T${reservationTime}+09:00`),
+    KOREA_TIMEZONE
+  )
+  
+  // 취소 마감 시간 (예약 시간 3시간 전)
+  const deadlineTime = new Date(reservationDateTime.getTime() - 3 * 60 * 60 * 1000)
+  
+  return {
+    canCancel: currentTime <= deadlineTime,
+    deadlineTime,
+    currentTime
+  }
+}
+
+/**
+ * 예약 수정 가능 여부 확인 (예약 전날 23:59까지)
+ * @param reservationDate 예약 날짜 (YYYY-MM-DD 형식)
+ * @returns 수정 가능 여부와 마감 시간
+ */
+export const canModifyReservation = (reservationDate: string): {
+  canModify: boolean
+  deadlineTime: Date
+  currentTime: Date
+} => {
+  // 한국 시간 기준 현재 시간
+  const currentTime = getKoreanDate()
+  
+  // 예약 날짜를 한국 시간으로 생성
+  const reservationDateTime = toZonedTime(
+    new Date(`${reservationDate}T00:00:00+09:00`),
+    KOREA_TIMEZONE
+  )
+  
+  // 수정 마감 시간 (예약 전날 23:59:59)
+  const deadlineTime = new Date(reservationDateTime.getTime() - 1) // 전날 23:59:59.999
+  
+  return {
+    canModify: currentTime <= deadlineTime,
+    deadlineTime,
+    currentTime
+  }
+}
+
+/**
+ * 한국 시간 기준 SQL용 타임스탬프 문자열 반환
+ * PostgreSQL에서 한국 시간 기준으로 비교할 때 사용
+ */
+export const getKoreanTimestampForSQL = (): string => {
+  const koreanTime = getKoreanDate()
+  return format(koreanTime, "yyyy-MM-dd HH:mm:ss'+09'")
+}
