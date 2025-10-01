@@ -25,17 +25,16 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     const body = await req.json()
     const { title: customTitle } = body // 사용자가 지정한 제목 (선택사항)
 
-    // 원본 문제 조회 (본인이 생성한 문제만 복제 가능)
+    // 원본 문제 조회 (모든 선생님이 모든 문제 복제 가능)
     const { data: originalProblem, error: fetchError } = await supabase
       .from('problems')
       .select('*')
       .eq('id', problemId)
-      .eq('created_by', user.id)
       .single()
 
     if (fetchError || !originalProblem) {
       return NextResponse.json(
-        { error: '문제를 찾을 수 없거나 복제 권한이 없습니다.' },
+        { error: '문제를 찾을 수 없습니다.' },
         { status: 404 }
       )
     }
@@ -51,6 +50,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       subject_area: originalProblem.subject_area,
       status: 'draft', // 복제본은 항상 초안 상태로 시작
       preview_lead_time: originalProblem.preview_lead_time,
+      limit_minutes: originalProblem.limit_minutes,
+      available_date: originalProblem.available_date,
+      images: originalProblem.images || [],
       created_by: user.id, // 현재 사용자가 소유자
       // scheduled_publish_at은 복사하지 않음 (수동으로 설정해야 함)
     }

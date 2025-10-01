@@ -101,6 +101,31 @@ export default function ProblemsManagementPage() {
     }
   }
 
+  // 문제 복제
+  const handleDuplicate = async (problemId: number) => {
+    try {
+      const response = await fetch(`/api/teacher/problems/${problemId}/duplicate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({})
+      })
+
+      const data = await response.json()
+
+      if (data.success) {
+        toast.success('문제가 복제되었습니다!')
+        // 복제 후 바로 편집 페이지로 이동
+        window.location.href = `/teacher/problems/${data.duplicatedProblem.id}`
+      } else {
+        toast.error(data.error || '복제에 실패했습니다.')
+      }
+    } catch (error) {
+      console.error('복제 오류:', error)
+      toast.error('복제 중 오류가 발생했습니다.')
+    }
+  }
+
   // 문제 공개/비공개 토글
   const toggleProblemVisibility = async (problemId: number, isPublic: boolean) => {
     try {
@@ -581,6 +606,12 @@ export default function ProblemsManagementPage() {
                             className="text-gray-600 hover:text-gray-900"
                           >
                             수정
+                          </button>
+                          <button
+                            onClick={() => handleDuplicate(problem.id)}
+                            className="text-green-600 hover:text-green-900"
+                          >
+                            복제
                           </button>
                         </td>
                       </tr>
