@@ -374,15 +374,9 @@ export default function StudentDashboard() {
   // 예약 취소
   const cancelReservation = async (reservationId: number) => {
     try {
-      // 첫 번째 시도 - 일반 취소
+      // 첫 번째 시도 - 일반 취소 (body 없음)
       const response = await fetch(`/api/reservations/${reservationId}`, {
         method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          confirmLateCancel: false
-        })
       })
 
       const data = await response.json()

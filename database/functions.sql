@@ -268,8 +268,8 @@ BEGIN
     WHERE id = v_slot_id;
     
     -- 조건부 이용권 환불
-    IF NOT v_is_late_cancel OR v_student_id != p_user_id THEN
-        -- 3시간 전 취소이거나 관리자 취소인 경우 환불
+    IF NOT v_is_late_cancel THEN
+        -- 3시간 전 취소인 경우 환불
         UPDATE accounts 
         SET current_tickets = current_tickets + 1,
             updated_at = NOW()
