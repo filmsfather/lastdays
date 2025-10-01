@@ -349,10 +349,15 @@ export async function DELETE(
     // 요청 본문에서 confirmLateCancel 파라미터 확인
     let confirmLateCancel = false
     try {
-      const body = await request.json()
-      confirmLateCancel = body.confirmLateCancel === true
-    } catch {
-      // 본문이 없거나 JSON이 아닌 경우 기본값 유지
+      // Content-Type 헤더 확인
+      const contentType = request.headers.get('content-type')
+      if (contentType && contentType.includes('application/json')) {
+        const body = await request.json()
+        confirmLateCancel = body.confirmLateCancel === true
+      }
+    } catch (error) {
+      // JSON 파싱 실패 시 기본값 유지
+      console.log('JSON parsing failed in DELETE request:', error)
     }
 
     // 예약 정보 조회 (시간 검증을 위해)

@@ -380,6 +380,9 @@ export default function StudentDashboard() {
         headers: {
           'Content-Type': 'application/json',
         },
+        body: JSON.stringify({
+          confirmLateCancel: false
+        })
       })
 
       const data = await response.json()
