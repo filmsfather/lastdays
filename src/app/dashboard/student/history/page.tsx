@@ -173,8 +173,9 @@ export default async function StudentHistoryPage({ searchParams }: Props) {
       )
     `)
     .in('reservation_id', reservationIds)
-    .eq('status', 'completed')
+    .in('status', ['active', 'feedback_pending', 'completed'])
     .limit(50)
+    .order('created_at', { ascending: false })
 
   if (error) {
     console.error('Error fetching student history:', error)

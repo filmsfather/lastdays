@@ -450,13 +450,6 @@ export default function StudentDashboard() {
         
         // 세션 목록 업데이트
         await Promise.all([fetchReservations(), fetchSessions()])
-        
-        // 세션이 생성되면 피드백 페이지로 이동
-        if (data.session?.id || data.sessionId) {
-          const sessionId = data.session?.id || data.sessionId
-          console.log('피드백 페이지로 이동:', sessionId)
-          router.push(`/session/${sessionId}/feedback`)
-        }
       } else {
         toast.error(data.error || '문제 선택에 실패했습니다.')
       }
@@ -1385,102 +1378,6 @@ export default function StudentDashboard() {
           </div>
         </div>
 
-        {/* 피드백 세션 현황 */}
-        <div className="card animate-slide-up">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-3xl font-bold text-gray-900">피드백 세션</h2>
-            <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
-              <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-              </svg>
-            </div>
-          </div>
-
-          {sessions.filter(session => session.status !== 'completed').length === 0 ? (
-            <div className="text-center py-12">
-              <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
-              </div>
-              <h3 className="text-lg font-medium text-gray-600 mb-2">생성된 피드백 세션이 없습니다</h3>
-              <p className="text-gray-500">문제를 선택하면 피드백 세션이 생성됩니다</p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {sessions.filter(session => session.status !== 'completed').map((session) => (
-                <div
-                  key={session.id}
-                  className={`p-4 lg:p-5 rounded-2xl border-2 transition-all duration-200 hover:shadow-lg ${
-                    session.status === 'completed' ? 'bg-green-50 border-green-200' :
-                    session.status === 'feedback_pending' ? 'bg-blue-50 border-blue-200' :
-                    'bg-amber-50 border-amber-200'
-                  }`}
-                >
-                  <div className="flex flex-col lg:flex-row justify-between items-start mb-3">
-                    <div className="flex-1 w-full">
-                      <h3 className="font-semibold text-gray-800 text-base lg:text-lg mb-1">
-                        {session.problemTitle}
-                      </h3>
-                      <p className="text-sm text-gray-600 mt-1">
-                        {formatDate(session.date)} • {getSessionLabel(session.sessionPeriod)} {formatTimeSlot(session.timeSlot)}
-                      </p>
-                      <p className="text-xs text-gray-500">
-                        {session.teacherName} 선생님 • {session.limitMinutes}분
-                      </p>
-                    </div>
-                    <span className={`px-3 py-1 rounded-lg text-xs font-medium mt-2 lg:mt-0 lg:ml-3 ${
-                      session.status === 'completed' ? 'bg-green-100 text-green-800' :
-                      session.status === 'feedback_pending' ? 'bg-blue-100 text-blue-800' :
-                      'bg-amber-100 text-amber-800'
-                    }`}>
-                      {session.status === 'completed' ? '완료' :
-                       session.status === 'feedback_pending' ? '피드백 대기' : '진행중'}
-                    </span>
-                  </div>
-
-                  {/* 진행 상황 표시 */}
-                  <div className="mb-4 space-y-2">
-                    <div className="flex items-center text-xs">
-                      <div className={`w-3 h-3 rounded-full mr-2 ${session.hasScore ? 'bg-green-500' : 'bg-gray-300'}`}></div>
-                      <span className={session.hasScore ? 'text-green-700' : 'text-gray-500'}>
-                        채점 {session.hasScore ? '완료' : '대기중'}
-                      </span>
-                      {session.hasScore && session.finalScore !== null && (
-                        <span className="ml-2 font-medium text-green-700">({session.finalScore}점)</span>
-                      )}
-                    </div>
-                    <div className="flex items-center text-xs">
-                      <div className={`w-3 h-3 rounded-full mr-2 ${session.hasFeedback ? 'bg-green-500' : 'bg-gray-300'}`}></div>
-                      <span className={session.hasFeedback ? 'text-green-700' : 'text-gray-500'}>
-                        피드백 {session.hasFeedback ? '완료' : '대기중'}
-                      </span>
-                    </div>
-                    <div className="flex items-center text-xs">
-                      <div className={`w-3 h-3 rounded-full mr-2 ${session.hasReflection ? 'bg-green-500' : 'bg-gray-300'}`}></div>
-                      <span className={session.hasReflection ? 'text-green-700' : 'text-gray-500'}>
-                        복기 {session.hasReflection ? '완료' : '작성중'}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* 피드백 페이지 이동 버튼 */}
-                  <button
-                    onClick={() => {
-                      console.log('피드백 페이지로 이동:', `/session/${session.id}/feedback`)
-                      console.log('세션 ID:', session.id)
-                      router.push(`/session/${session.id}/feedback`)
-                    }}
-                    className="w-full py-3 px-4 bg-white border border-gray-300 rounded-xl text-gray-700 font-medium hover:bg-gray-50 hover:border-gray-400 transition-all duration-200 text-sm lg:text-base"
-                  >
-                    <span className="hidden lg:inline">피드백 페이지 보기 →</span>
-                    <span className="lg:hidden">피드백 보기 →</span>
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
 
         {/* 문제 선택 모달 */}
         {showProblemModal && (
