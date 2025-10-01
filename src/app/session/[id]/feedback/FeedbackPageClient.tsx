@@ -131,6 +131,12 @@ export default function FeedbackPageClient({ sessionData: initialSessionData, cu
     initialSessionData.scores?.evaluation_type === '작법' ? 'writing' : 'interview'
   )
 
+  // 문제 변경 관련 state
+  const [showProblemChangeModal, setShowProblemChangeModal] = useState(false)
+  const [availableProblems, setAvailableProblems] = useState<any[]>([])
+  const [selectedNewProblem, setSelectedNewProblem] = useState<number | null>(null)
+  const [problemChangeLoading, setProblemChangeLoading] = useState(false)
+
   // 실시간 시간 업데이트
   useEffect(() => {
     const timer = setInterval(() => {
@@ -424,6 +430,71 @@ export default function FeedbackPageClient({ sessionData: initialSessionData, cu
     }
   }
 
+  // 문제 변경 모달 열기 및 문제 목록 조회
+  const openProblemChangeModal = async () => {
+    try {
+      setProblemChangeLoading(true)
+      
+      // 세션 날짜에 맞는 공개된 문제들 조회
+      const sessionDate = sessionData.slot.date
+      const response = await fetch(`/api/teacher/problems?date=${sessionDate}&publishedOnly=true`)
+      const data = await response.json()
+      
+      if (data.success) {
+        setAvailableProblems(data.problems)
+        setShowProblemChangeModal(true)
+        setSelectedNewProblem(null)
+      } else {
+        toast.error('문제 목록을 불러오는데 실패했습니다.')
+      }
+    } catch (error) {
+      console.error('문제 목록 조회 실패:', error)
+      toast.error('문제 목록을 불러오는 중 오류가 발생했습니다.')
+    } finally {
+      setProblemChangeLoading(false)
+    }
+  }
+
+  // 문제 변경 실행
+  const handleProblemChange = async () => {
+    if (!selectedNewProblem) {
+      toast.error('변경할 문제를 선택해주세요.')
+      return
+    }
+
+    // 현재 문제와 동일한 문제인지 확인
+    if (selectedNewProblem === sessionData.problemSnapshot?.id) {
+      toast.error('현재와 동일한 문제입니다.')
+      return
+    }
+
+    try {
+      setProblemChangeLoading(true)
+      
+      const response = await fetch(`/api/sessions/${sessionData.sessionId}/change-problem`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ problemId: selectedNewProblem })
+      })
+
+      if (response.ok) {
+        toast.success('문제가 성공적으로 변경되었습니다.')
+        setShowProblemChangeModal(false)
+        setSelectedNewProblem(null)
+        // 페이지 새로고침으로 최신 데이터 반영
+        window.location.reload()
+      } else {
+        const errorData = await response.json()
+        toast.error(errorData.error || '문제 변경에 실패했습니다.')
+      }
+    } catch (error) {
+      console.error('문제 변경 실패:', error)
+      toast.error('문제 변경 중 오류가 발생했습니다.')
+    } finally {
+      setProblemChangeLoading(false)
+    }
+  }
+
   return (
     <div className="min-h-screen bg-gray-100">
       <div className="max-w-6xl mx-auto px-4 py-8">
@@ -462,7 +533,30 @@ export default function FeedbackPageClient({ sessionData: initialSessionData, cu
 
         {/* 문제 정보 - 시간 상태별 조건부 렌더링 */}
         <div className="bg-white rounded-lg shadow-md p-8 mb-6">
-          <h2 className="text-xl font-bold text-gray-800 mb-6">문제 정보</h2>
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-xl font-bold text-gray-800">문제 정보</h2>
+            {/* 선생님에게만 문제 변경 버튼 표시 */}
+            {isTeacher && !isHallOfFameMode && sessionData.problemSnapshot && (
+              <button
+                onClick={openProblemChangeModal}
+                disabled={problemChangeLoading}
+                className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                  problemChangeLoading
+                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                    : 'bg-blue-600 text-white hover:bg-blue-700'
+                }`}
+              >
+                {problemChangeLoading ? (
+                  <div className="flex items-center">
+                    <div className="w-4 h-4 border-2 border-gray-400 border-t-white rounded-full animate-spin mr-2"></div>
+                    문제 변경...
+                  </div>
+                ) : (
+                  '문제 변경'
+                )}
+              </button>
+            )}
+          </div>
           
           {/* 시간 기반 메시지 또는 문제 내용 표시 */}
           {!timeStatus.canShow && !isTeacher && !isAdmin ? (
@@ -873,6 +967,127 @@ export default function FeedbackPageClient({ sessionData: initialSessionData, cu
             )}
           </div>
         </div>
+
+        {/* 문제 변경 모달 */}
+        {showProblemChangeModal && (
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 px-4">
+            <div className="bg-white rounded-3xl p-8 w-full max-w-2xl shadow-2xl animate-slide-up">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-2xl font-bold text-gray-900">문제 변경</h3>
+                <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center">
+                  <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                </div>
+              </div>
+              
+              <div className="mb-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                <p className="text-blue-800 text-sm">
+                  <strong>현재 문제:</strong> {sessionData.problemSnapshot?.title}
+                </p>
+                <p className="text-blue-600 text-xs mt-1">
+                  {sessionData.slot.date} 날짜에 공개된 문제들 중에서 선택할 수 있습니다.
+                </p>
+              </div>
+
+              <div className="max-h-80 overflow-y-auto custom-scrollbar mb-8">
+                <div className="space-y-4">
+                  {availableProblems.length === 0 ? (
+                    <div className="text-center py-8">
+                      <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                      </div>
+                      <p className="text-gray-500 text-lg">해당 날짜에 사용 가능한 문제가 없습니다</p>
+                    </div>
+                  ) : (
+                    availableProblems.map((problem) => {
+                      const isCurrentProblem = problem.id === sessionData.problemSnapshot?.id
+                      return (
+                        <div
+                          key={problem.id}
+                          className={`p-5 rounded-2xl border-2 cursor-pointer transition-all duration-200 ${
+                            isCurrentProblem 
+                              ? 'bg-gray-50 border-gray-300 opacity-60' 
+                              : selectedNewProblem === problem.id
+                                ? 'bg-gradient-to-br from-blue-50 to-blue-50 border-blue-300 shadow-medium scale-[1.02]'
+                                : 'bg-white border-gray-200 hover:border-gray-300 hover:shadow-soft hover:scale-[1.01]'
+                          } ${isCurrentProblem ? 'cursor-not-allowed' : ''}`}
+                          onClick={() => !isCurrentProblem && setSelectedNewProblem(problem.id)}
+                        >
+                          <div className="flex justify-between items-start">
+                            <div className="flex-1">
+                              <div className="flex items-center mb-2">
+                                <p className="font-medium text-gray-800">{problem.title}</p>
+                                {isCurrentProblem && (
+                                  <span className="ml-3 px-2 py-1 bg-gray-200 text-gray-600 text-xs rounded-full">
+                                    현재 문제
+                                  </span>
+                                )}
+                              </div>
+                              <div className="flex items-center mt-2 space-x-2">
+                                <span className="px-2 py-1 bg-green-100 text-green-700 text-xs rounded">
+                                  사전열람 {problem.preview_lead_time}분 전
+                                </span>
+                                <span className="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded">
+                                  공개일: {problem.available_date}
+                                </span>
+                              </div>
+                              <div className="mt-1 text-xs text-gray-500">
+                                {problem.creator?.name} 선생님 • {problem.creator?.class_name}
+                              </div>
+                            </div>
+                            {!isCurrentProblem && (
+                              <input
+                                type="radio"
+                                name="problem"
+                                checked={selectedNewProblem === problem.id}
+                                onChange={() => setSelectedNewProblem(problem.id)}
+                                className="h-4 w-4 text-blue-600"
+                              />
+                            )}
+                          </div>
+                        </div>
+                      )
+                    })
+                  )}
+                </div>
+              </div>
+
+              <div className="flex space-x-4">
+                <button
+                  onClick={() => {
+                    setShowProblemChangeModal(false)
+                    setSelectedNewProblem(null)
+                  }}
+                  className="flex-1 py-3 px-6 bg-gray-200 text-gray-700 rounded-2xl font-semibold hover:bg-gray-300 transition-colors"
+                  disabled={problemChangeLoading}
+                >
+                  취소
+                </button>
+                <button
+                  onClick={handleProblemChange}
+                  disabled={!selectedNewProblem || problemChangeLoading}
+                  className={`flex-1 py-3 px-6 rounded-2xl font-semibold transition-all duration-200 ${
+                    selectedNewProblem && !problemChangeLoading
+                      ? 'bg-blue-600 text-white shadow-medium hover:bg-blue-700 hover:shadow-lg transform hover:-translate-y-0.5'
+                      : 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                  }`}
+                >
+                  {problemChangeLoading ? (
+                    <div className="flex items-center justify-center">
+                      <div className="w-5 h-5 border-2 border-gray-400 border-t-white rounded-full animate-spin mr-2"></div>
+                      변경 중...
+                    </div>
+                  ) : (
+                    '문제 변경 ✨'
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )

@@ -13,13 +13,29 @@ export async function GET(req: NextRequest) {
       )
     }
 
-    const { data: problems, error } = await supabase
+    const { searchParams } = new URL(req.url)
+    const availableDate = searchParams.get('date') // YYYY-MM-DD 형식
+    const publishedOnly = searchParams.get('publishedOnly') === 'true' // 공개된 문제만 조회
+
+    let query = supabase
       .from('problems')
       .select(`
         *,
-        creator:accounts!created_by(name)
+        creator:accounts!created_by(name, class_name)
       `)
       .order('created_at', { ascending: false })
+
+    // 공개된 문제만 조회 (문제 변경 시 사용)
+    if (publishedOnly) {
+      query = query.eq('status', 'published')
+    }
+
+    // 특정 날짜의 문제만 조회 (문제 변경 시 당일 활성화된 문제용)
+    if (availableDate) {
+      query = query.eq('available_date', availableDate)
+    }
+
+    const { data: problems, error } = await query
 
     if (error) {
       return NextResponse.json(
