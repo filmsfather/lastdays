@@ -388,6 +388,10 @@ export async function DELETE(
       )
     }
 
+    // API에서 환불 여부 계산
+    let refundTicket = true // 기본값: 환불
+    let isLateCancel = false
+
     // 학생 본인인 경우에만 시간 제한 확인 (관리자는 제외)
     if (currentUser.role !== 'admin' && reservation.student_id === currentUser.id) {
       const cancellationCheck = canCancelReservation(
@@ -395,16 +399,21 @@ export async function DELETE(
         reservation.slot.time_slot
       )
       
-      // 3시간 후 취소인데 확인하지 않은 경우 특별 응답
-      if (!cancellationCheck.canCancel && !confirmLateCancel) {
-        return NextResponse.json(
-          { 
-            error: 'late_cancellation_warning',
-            needsConfirmation: true,
-            message: '이 시간은 다른 학생이 피드백을 받을 수 있었던 귀한 시간입니다. 3시간 전 취소는 이용권이 환불되지 않습니다. 그래도 취소하시겠습니까?'
-          },
-          { status: 400 }
-        )
+      if (!cancellationCheck.canCancel) {
+        isLateCancel = true
+        if (!confirmLateCancel) {
+          // 3시간 후 취소 경고 - 사용자 확인 필요
+          return NextResponse.json(
+            { 
+              error: 'late_cancellation_warning',
+              needsConfirmation: true,
+              message: '이 시간은 다른 학생이 피드백을 받을 수 있었던 귀한 시간입니다. 3시간 전 취소는 이용권이 환불되지 않습니다. 그래도 취소하시겠습니까?'
+            },
+            { status: 400 }
+          )
+        }
+        // 3시간 후 취소 확인됨 - 환불 없음
+        refundTicket = false
       }
     }
 
@@ -412,7 +421,7 @@ export async function DELETE(
     const { data, error } = await supabase.rpc('cancel_reservation', {
       p_reservation_id: reservationId,
       p_user_id: currentUser.id,
-      p_confirm_late_cancel: confirmLateCancel
+      p_refund_ticket: refundTicket
     })
 
     if (error) {
@@ -433,15 +442,6 @@ export async function DELETE(
           { error: '해당 예약에 대한 권한이 없습니다.' },
           { status: 403 }
         )
-      } else if (error.message.includes('cancellation_too_late')) {
-        return NextResponse.json(
-          { 
-            error: 'late_cancellation_warning',
-            needsConfirmation: true,
-            message: '이 시간은 다른 학생이 피드백을 받을 수 있었던 귀한 시간입니다. 3시간 전 취소는 이용권이 환불되지 않습니다. 그래도 취소하시겠습니까?'
-          },
-          { status: 400 }
-        )
       } else {
         return NextResponse.json(
           { error: '예약 취소 중 오류가 발생했습니다.' },
@@ -451,7 +451,6 @@ export async function DELETE(
     }
 
     // 응답 메시지 결정
-    const isLateCancel = data?.is_late_cancel === true
     const ticketsRefunded = data?.tickets_refunded || 0
     
     let message = '예약이 취소되었습니다.'
