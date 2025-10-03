@@ -52,6 +52,14 @@
       "namedRegex": "^/api/reservations/(?<nxtPid>[^/]+?)/select\\-problem(?:/)?$"
     },
     {
+      "page": "/api/sessions/[id]/change-problem",
+      "regex": "^/api/sessions/([^/]+?)/change\\-problem(?:/)?$",
+      "routeKeys": {
+        "nxtPid": "nxtPid"
+      },
+      "namedRegex": "^/api/sessions/(?<nxtPid>[^/]+?)/change\\-problem(?:/)?$"
+    },
+    {
       "page": "/api/sessions/[id]/checklist",
       "regex": "^/api/sessions/([^/]+?)/checklist(?:/)?$",
       "routeKeys": {

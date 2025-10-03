@@ -187,7 +187,7 @@ EXCEPTION
 END;
 $$ LANGUAGE plpgsql;
 
--- 예약 취소 함수 (API에서 환불 여부 결정)
+-- 예약 취소 함수 (티켓 환불 포함)
 CREATE OR REPLACE FUNCTION cancel_reservation(
     p_reservation_id INTEGER,
     p_user_id INTEGER,
@@ -198,7 +198,6 @@ DECLARE
     v_slot_id INTEGER;
     v_student_id INTEGER;
     v_tickets_refunded INTEGER := 0;
-    v_message TEXT;
 BEGIN
     -- 예약 존재 확인
     SELECT id, student_id, slot_id, status
@@ -240,25 +239,18 @@ BEGIN
         updated_at = NOW()
     WHERE id = v_slot_id;
     
-    -- API에서 결정된 환불 여부에 따라 처리
+    -- 이용권 환불 (p_refund_ticket 플래그에 따라 결정)
     IF p_refund_ticket THEN
-        -- 이용권 환불
         UPDATE accounts 
         SET current_tickets = current_tickets + 1,
             updated_at = NOW()
         WHERE id = v_student_id;
-        
         v_tickets_refunded := 1;
-        v_message := 'reservation_cancelled_with_refund';
-    ELSE
-        -- 환불 없음
-        v_tickets_refunded := 0;
-        v_message := 'reservation_cancelled_no_refund';
     END IF;
     
     RETURN json_build_object(
         'success', true,
-        'message', v_message,
+        'message', 'reservation_cancelled',
         'tickets_refunded', v_tickets_refunded
     );
     
