@@ -528,14 +528,9 @@ export default function StudentDashboard() {
     window.open('https://youtube.com/live/dzDsF2bpkmU?feature=share', '_blank')
     setShowSpecialLecture(false)
   }
-  // 성결대 특강 페이지로 이동
-  const goToSungkyulLecture = () => {
-    window.open('https://youtube.com/live/ukS-PMccU3U?feature=share', '_blank')
-    setShowSpecialLecture(false)
-  }
-  // 성결대 로그라인 페이지로 이동
-  const goToSungkyulLogline = () => {
-    window.open('https://youtube.com/live/2Nuo-0vp9ug?feature=share', '_blank')
+  // 시나리오 분석 2 페이지로 이동
+  const goToScenarioAnalysis2 = () => {
+    window.open('https://youtube.com/live/tKWKaTkD_Vw?feature=share', '_blank')
     setShowSpecialLecture(false)
   }
 
@@ -724,29 +719,16 @@ export default function StudentDashboard() {
                       </div>
                     </button>
                     <button
-                      onClick={goToSungkyulLecture}
+                      onClick={goToScenarioAnalysis2}
                       className="w-full px-4 py-3 text-left hover:bg-gray-50 transition-colors flex items-center"
                     >
-                      <div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center mr-3">
-                        <svg className="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                      <div className="w-8 h-8 bg-orange-100 rounded-lg flex items-center justify-center mr-3">
+                        <svg className="w-4 h-4 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
                         </svg>
                       </div>
                       <div>
-                        <div className="font-medium text-gray-900">성결대 특강</div>
-                      </div>
-                    </button>
-                    <button
-                      onClick={goToSungkyulLogline}
-                      className="w-full px-4 py-3 text-left hover:bg-gray-50 transition-colors flex items-center"
-                    >
-                      <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center mr-3">
-                        <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v6a2 2 0 002 2h6a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
-                        </svg>
-                      </div>
-                      <div>
-                        <div className="font-medium text-gray-900">성결대 로그라인</div>
+                        <div className="font-medium text-gray-900">시나리오 분석 2</div>
                       </div>
                     </button>
                   </div>
@@ -815,29 +797,16 @@ export default function StudentDashboard() {
                       </div>
                     </button>
                     <button
-                      onClick={goToSungkyulLecture}
+                      onClick={goToScenarioAnalysis2}
                       className="w-full px-4 py-3 text-left hover:bg-gray-50 transition-colors flex items-center"
                     >
-                      <div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center mr-3">
-                        <svg className="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                      <div className="w-8 h-8 bg-orange-100 rounded-lg flex items-center justify-center mr-3">
+                        <svg className="w-4 h-4 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
                         </svg>
                       </div>
                       <div>
-                        <div className="font-medium text-gray-900">성결대 특강</div>
-                      </div>
-                    </button>
-                    <button
-                      onClick={goToSungkyulLogline}
-                      className="w-full px-4 py-3 text-left hover:bg-gray-50 transition-colors flex items-center"
-                    >
-                      <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center mr-3">
-                        <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v6a2 2 0 002 2h6a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
-                        </svg>
-                      </div>
-                      <div>
-                        <div className="font-medium text-gray-900">성결대 로그라인</div>
+                        <div className="font-medium text-gray-900">시나리오 분석 2</div>
                       </div>
                     </button>
                   </div>
