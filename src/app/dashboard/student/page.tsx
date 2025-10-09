@@ -533,6 +533,11 @@ export default function StudentDashboard() {
     window.open('https://youtube.com/live/tKWKaTkD_Vw?feature=share', '_blank')
     setShowSpecialLecture(false)
   }
+  // 시나리오 분석 3 페이지로 이동
+  const goToScenarioAnalysis3 = () => {
+    window.open('https://youtube.com/live/R6Gm56_EAFI?feature=share', '_blank')
+    setShowSpecialLecture(false)
+  }
 
   // 당일 또는 미래 예약인지 확인
   const isFutureOrTodayReservation = (reservation: Reservation) => {
@@ -731,6 +736,20 @@ export default function StudentDashboard() {
                         <div className="font-medium text-gray-900">시나리오 분석 2</div>
                       </div>
                     </button>
+                    <button
+                      onClick={goToScenarioAnalysis3}
+                      className="w-full px-4 py-3 text-left hover:bg-gray-50 transition-colors flex items-center"
+                    >
+                      <div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center mr-3">
+                        <svg className="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.886 0-3.438 1.537-3.497 3.422a3.5 3.5 0 105.742 2.611" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v2m6 7h2M4 12H2m16.95 6.95l-1.414-1.414M6.464 6.464L5.05 5.05" />
+                        </svg>
+                      </div>
+                      <div>
+                        <div className="font-medium text-gray-900">시나리오 분석 3</div>
+                      </div>
+                    </button>
                   </div>
                 )}
               </div>
@@ -807,6 +826,20 @@ export default function StudentDashboard() {
                       </div>
                       <div>
                         <div className="font-medium text-gray-900">시나리오 분석 2</div>
+                      </div>
+                    </button>
+                    <button
+                      onClick={goToScenarioAnalysis3}
+                      className="w-full px-4 py-3 text-left hover:bg-gray-50 transition-colors flex items-center"
+                    >
+                      <div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center mr-3">
+                        <svg className="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.886 0-3.438 1.537-3.497 3.422a3.5 3.5 0 105.742 2.611" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v2m6 7h2M4 12H2m16.95 6.95l-1.414-1.414M6.464 6.464L5.05 5.05" />
+                        </svg>
+                      </div>
+                      <div>
+                        <div className="font-medium text-gray-900">시나리오 분석 3</div>
                       </div>
                     </button>
                   </div>
