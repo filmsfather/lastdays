@@ -23,11 +23,10 @@ interface TimeSlot {
   is_available: boolean
 }
 
-interface CreateSlotModal {
-  show: boolean
-  date: string
-  sessionPeriod: 'AM' | 'PM'
-}
+const AM_HOURS = [10, 11, 12, 13, 14, 15]
+const PM_HOURS = [16, 17, 18, 19, 20, 21]
+const SLOT_INTERVAL_MINUTES = 10
+const SLOTS_PER_HOUR = 6
 
 export default function TimeslotManagement() {
   const [teachers, setTeachers] = useState<Teacher[]>([])
@@ -36,22 +35,6 @@ export default function TimeslotManagement() {
   const [loading, setLoading] = useState(false)
   const [currentWeekStart, setCurrentWeekStart] = useState<Date>(new Date())
   const [selectedSlots, setSelectedSlots] = useState<Set<number>>(new Set())
-  
-  // 슬롯 생성 모달
-  const [createModal, setCreateModal] = useState<CreateSlotModal>({
-    show: false,
-    date: '',
-    sessionPeriod: 'AM'
-  })
-  
-  // 빠른 생성 설정
-  const [quickCreateConfig, setQuickCreateConfig] = useState({
-    amStart: '10:00',
-    amEnd: '15:50',
-    pmStart: '16:00',
-    pmEnd: '21:50',
-    intervalMinutes: 10
-  })
 
   // 주간 시작일 계산 (월요일 기준, 한국 시간 기준)
   const getWeekStart = (date?: Date) => {
@@ -100,22 +83,25 @@ export default function TimeslotManagement() {
     }
   }
 
-  // 빠른 슬롯 생성 (일정 시간 범위에서 자동 생성)
-  const createQuickSlots = async (date: string, sessionPeriod: 'AM' | 'PM') => {
+  const createHourSlots = async (date: string, sessionPeriod: 'AM' | 'PM', hour: number) => {
     if (!selectedTeacher) {
       toast.error('교사를 먼저 선택해주세요.')
       return
     }
 
+    const hourString = hour.toString().padStart(2, '0')
+    const startTime = `${hourString}:00`
+    const endTime = `${hourString}:50`
+
     const config = {
       date,
       teacherId: selectedTeacher,
-      amStart: quickCreateConfig.amStart,
-      amEnd: quickCreateConfig.amEnd,
-      pmStart: quickCreateConfig.pmStart,
-      pmEnd: quickCreateConfig.pmEnd,
-      intervalMinutes: quickCreateConfig.intervalMinutes,
-      sessionOnly: sessionPeriod // 특정 세션만 생성
+      amStart: sessionPeriod === 'AM' ? startTime : '23:59',
+      amEnd: sessionPeriod === 'AM' ? endTime : '23:58',
+      pmStart: sessionPeriod === 'PM' ? startTime : '23:59',
+      pmEnd: sessionPeriod === 'PM' ? endTime : '23:58',
+      intervalMinutes: SLOT_INTERVAL_MINUTES,
+      sessionOnly: sessionPeriod
     }
 
     try {
@@ -130,9 +116,8 @@ export default function TimeslotManagement() {
       const data = await response.json()
 
       if (data.success) {
-        toast.success(`${sessionPeriod === 'AM' ? '오전' : '오후'} 슬롯이 생성되었습니다.`)
+        toast.success(`${hourString}시 슬롯이 생성되었습니다.`)
         fetchWeekSlots(selectedTeacher)
-        setCreateModal({ show: false, date: '', sessionPeriod: 'AM' })
       } else {
         toast.error(data.error || '슬롯 생성에 실패했습니다.')
       }
@@ -140,6 +125,19 @@ export default function TimeslotManagement() {
       console.error('슬롯 생성 실패:', error)
       toast.error('슬롯 생성 중 오류가 발생했습니다.')
     }
+  }
+
+  const getHourSlots = (slots: TimeSlot[], hour: number) => {
+    const hourPrefix = `${hour.toString().padStart(2, '0')}:`
+    return slots.filter(slot => slot.time_slot.startsWith(hourPrefix))
+  }
+
+  const isHourComplete = (slots: TimeSlot[], hour: number) => {
+    return getHourSlots(slots, hour).length >= SLOTS_PER_HOUR
+  }
+
+  const hasHourSlots = (slots: TimeSlot[], hour: number) => {
+    return getHourSlots(slots, hour).length > 0
   }
 
   // 개별 슬롯 생성
@@ -477,7 +475,6 @@ export default function TimeslotManagement() {
           <h2 className="text-2xl font-bold text-gray-900 mb-6">주간 타임슬롯 관리</h2>
           
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-            {/* 교사 선택 */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">교사 선택</label>
               <select
@@ -494,57 +491,9 @@ export default function TimeslotManagement() {
               </select>
             </div>
 
-            {/* 빠른 생성 설정 */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">간격 설정</label>
-              <select
-                value={quickCreateConfig.intervalMinutes}
-                onChange={(e) => setQuickCreateConfig(prev => ({ ...prev, intervalMinutes: parseInt(e.target.value) }))}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              >
-                <option value={10}>10분 간격</option>
-                <option value={15}>15분 간격</option>
-                <option value={20}>20분 간격</option>
-                <option value={30}>30분 간격</option>
-              </select>
-            </div>
-
-            {/* 시간 범위 빠른 설정 */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">시간대 설정</label>
-              <div className="flex space-x-2 text-sm">
-                <div>
-                  <span className="text-gray-600">오전:</span>
-                  <input
-                    type="time"
-                    value={quickCreateConfig.amStart}
-                    onChange={(e) => setQuickCreateConfig(prev => ({ ...prev, amStart: e.target.value }))}
-                    className="w-16 px-1 py-1 border border-gray-300 rounded text-xs"
-                  />
-                  <span>-</span>
-                  <input
-                    type="time"
-                    value={quickCreateConfig.amEnd}
-                    onChange={(e) => setQuickCreateConfig(prev => ({ ...prev, amEnd: e.target.value }))}
-                    className="w-16 px-1 py-1 border border-gray-300 rounded text-xs"
-                  />
-                </div>
-                <div>
-                  <span className="text-gray-600">오후:</span>
-                  <input
-                    type="time"
-                    value={quickCreateConfig.pmStart}
-                    onChange={(e) => setQuickCreateConfig(prev => ({ ...prev, pmStart: e.target.value }))}
-                    className="w-16 px-1 py-1 border border-gray-300 rounded text-xs"
-                  />
-                  <span>-</span>
-                  <input
-                    type="time"
-                    value={quickCreateConfig.pmEnd}
-                    onChange={(e) => setQuickCreateConfig(prev => ({ ...prev, pmEnd: e.target.value }))}
-                    className="w-16 px-1 py-1 border border-gray-300 rounded text-xs"
-                  />
-                </div>
+            <div className="lg:col-span-2">
+              <div className="p-4 rounded-xl bg-blue-50 text-sm text-blue-800 border border-blue-100">
+                시간대를 선택하면 해당 시간의 10분 단위 슬롯 6개(정시~50분)가 생성됩니다. 이미 생성된 시간대를 다시 눌러도 중복 생성되지 않으며, 슬롯 일부가 삭제되었을 경우 보충용으로 다시 눌러도 됩니다.
               </div>
             </div>
           </div>
@@ -648,12 +597,29 @@ export default function TimeslotManagement() {
                         <div className="mb-4">
                           <div className="flex items-center justify-between mb-2">
                             <span className="text-xs font-medium text-orange-600">오전</span>
-                            <button
-                              onClick={() => createQuickSlots(dateString, 'AM')}
-                              className="text-xs bg-orange-100 text-orange-700 px-2 py-1 rounded hover:bg-orange-200 transition-colors"
-                            >
-                              + 생성
-                            </button>
+                          </div>
+                          <div className="flex flex-wrap gap-1 mb-2">
+                            {AM_HOURS.map((hour) => {
+                              const hourComplete = isHourComplete(daySlots.AM, hour)
+                              const hourStarted = hasHourSlots(daySlots.AM, hour)
+                              const hourLabel = `${hour.toString().padStart(2, '0')}시`
+
+                              return (
+                                <button
+                                  key={`am-${hour}`}
+                                  onClick={() => createHourSlots(dateString, 'AM', hour)}
+                                  className={`text-xs px-2 py-1 rounded border transition-colors ${
+                                    hourComplete
+                                      ? 'bg-green-100 text-green-800 border-green-200'
+                                      : hourStarted
+                                        ? 'bg-yellow-100 text-yellow-800 border-yellow-200 hover:bg-yellow-200'
+                                        : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-100'
+                                  }`}
+                                >
+                                  {hourLabel}
+                                </button>
+                              )
+                            })}
                           </div>
                           <div className="space-y-1 max-h-40 overflow-y-auto">
                             {daySlots.AM.length === 0 ? (
@@ -734,12 +700,29 @@ export default function TimeslotManagement() {
                         <div>
                           <div className="flex items-center justify-between mb-2">
                             <span className="text-xs font-medium text-purple-600">오후</span>
-                            <button
-                              onClick={() => createQuickSlots(dateString, 'PM')}
-                              className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded hover:bg-purple-200 transition-colors"
-                            >
-                              + 생성
-                            </button>
+                          </div>
+                          <div className="flex flex-wrap gap-1 mb-2">
+                            {PM_HOURS.map((hour) => {
+                              const hourComplete = isHourComplete(daySlots.PM, hour)
+                              const hourStarted = hasHourSlots(daySlots.PM, hour)
+                              const hourLabel = `${hour.toString().padStart(2, '0')}시`
+
+                              return (
+                                <button
+                                  key={`pm-${hour}`}
+                                  onClick={() => createHourSlots(dateString, 'PM', hour)}
+                                  className={`text-xs px-2 py-1 rounded border transition-colors ${
+                                    hourComplete
+                                      ? 'bg-green-100 text-green-800 border-green-200'
+                                      : hourStarted
+                                        ? 'bg-yellow-100 text-yellow-800 border-yellow-200 hover:bg-yellow-200'
+                                        : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-100'
+                                  }`}
+                                >
+                                  {hourLabel}
+                                </button>
+                              )
+                            })}
                           </div>
                           <div className="space-y-1 max-h-40 overflow-y-auto">
                             {daySlots.PM.length === 0 ? (

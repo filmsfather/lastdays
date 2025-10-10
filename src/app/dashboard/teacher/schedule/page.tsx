@@ -24,21 +24,17 @@ interface TimeSlot {
   is_available: boolean
 }
 
+const AM_HOURS = [10, 11, 12, 13, 14, 15]
+const PM_HOURS = [16, 17, 18, 19, 20, 21]
+const SLOT_INTERVAL_MINUTES = 10
+const SLOTS_PER_HOUR = 6
+
 export default function TeacherSchedulePage() {
   const [user, setUser] = useState<User | null>(null)
   const [timeSlots, setTimeSlots] = useState<TimeSlot[]>([])
   const [loading, setLoading] = useState(false)
   const [currentWeekStart, setCurrentWeekStart] = useState<Date>(new Date())
   const [selectedSlots, setSelectedSlots] = useState<Set<number>>(new Set())
-  
-  // 빠른 생성 설정
-  const [quickCreateConfig, setQuickCreateConfig] = useState({
-    amStart: '10:00',
-    amEnd: '15:50',
-    pmStart: '16:00',
-    pmEnd: '21:50',
-    intervalMinutes: 10
-  })
 
   // 현재 사용자 정보 조회
   useEffect(() => {
@@ -101,22 +97,25 @@ export default function TeacherSchedulePage() {
     setCurrentWeekStart(weekStart)
   }, [])
 
-  // 빠른 슬롯 생성 (일정 시간 범위에서 자동 생성)
-  const createQuickSlots = async (date: string, sessionPeriod: 'AM' | 'PM') => {
+  const createHourSlots = async (date: string, sessionPeriod: 'AM' | 'PM', hour: number) => {
     if (!user) {
       toast.error('사용자 정보를 불러오는 중입니다.')
       return
     }
 
+    const hourString = hour.toString().padStart(2, '0')
+    const startTime = `${hourString}:00`
+    const endTime = `${hourString}:50`
+
     const config = {
       date,
       teacherId: user.id.toString(),
-      amStart: quickCreateConfig.amStart,
-      amEnd: quickCreateConfig.amEnd,
-      pmStart: quickCreateConfig.pmStart,
-      pmEnd: quickCreateConfig.pmEnd,
-      intervalMinutes: quickCreateConfig.intervalMinutes,
-      sessionOnly: sessionPeriod // 특정 세션만 생성
+      amStart: sessionPeriod === 'AM' ? startTime : '23:59',
+      amEnd: sessionPeriod === 'AM' ? endTime : '23:58',
+      pmStart: sessionPeriod === 'PM' ? startTime : '23:59',
+      pmEnd: sessionPeriod === 'PM' ? endTime : '23:58',
+      intervalMinutes: SLOT_INTERVAL_MINUTES,
+      sessionOnly: sessionPeriod
     }
 
     try {
@@ -131,7 +130,7 @@ export default function TeacherSchedulePage() {
       const data = await response.json()
 
       if (data.success) {
-        toast.success(`${sessionPeriod === 'AM' ? '오전' : '오후'} 슬롯이 생성되었습니다.`)
+        toast.success(`${hourString}시 슬롯이 생성되었습니다.`)
         fetchWeekSlots()
       } else {
         toast.error(data.error || '슬롯 생성에 실패했습니다.')
@@ -140,6 +139,19 @@ export default function TeacherSchedulePage() {
       console.error('슬롯 생성 실패:', error)
       toast.error('슬롯 생성 중 오류가 발생했습니다.')
     }
+  }
+
+  const getHourSlots = (slots: TimeSlot[], hour: number) => {
+    const prefix = `${hour.toString().padStart(2, '0')}:`
+    return slots.filter(slot => slot.time_slot.startsWith(prefix))
+  }
+
+  const isHourComplete = (slots: TimeSlot[], hour: number) => {
+    return getHourSlots(slots, hour).length >= SLOTS_PER_HOUR
+  }
+
+  const hasHourSlots = (slots: TimeSlot[], hour: number) => {
+    return getHourSlots(slots, hour).length > 0
   }
 
   const deleteSelectedSlots = async () => {
@@ -333,59 +345,9 @@ export default function TeacherSchedulePage() {
         <div className="card">
           <h2 className="text-2xl font-bold text-gray-900 mb-6">주간 스케줄</h2>
           
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-            {/* 빠른 생성 설정 */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">간격 설정</label>
-              <select
-                value={quickCreateConfig.intervalMinutes}
-                onChange={(e) => setQuickCreateConfig(prev => ({ ...prev, intervalMinutes: parseInt(e.target.value) }))}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              >
-                <option value={10}>10분 간격</option>
-                <option value={15}>15분 간격</option>
-                <option value={20}>20분 간격</option>
-                <option value={30}>30분 간격</option>
-              </select>
-            </div>
-
-            {/* 시간 범위 빠른 설정 */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">시간대 설정</label>
-              <div className="flex space-x-2 text-sm">
-                <div>
-                  <span className="text-gray-600">오전:</span>
-                  <input
-                    type="time"
-                    value={quickCreateConfig.amStart}
-                    onChange={(e) => setQuickCreateConfig(prev => ({ ...prev, amStart: e.target.value }))}
-                    className="w-16 px-1 py-1 border border-gray-300 rounded text-xs"
-                  />
-                  <span>-</span>
-                  <input
-                    type="time"
-                    value={quickCreateConfig.amEnd}
-                    onChange={(e) => setQuickCreateConfig(prev => ({ ...prev, amEnd: e.target.value }))}
-                    className="w-16 px-1 py-1 border border-gray-300 rounded text-xs"
-                  />
-                </div>
-                <div>
-                  <span className="text-gray-600">오후:</span>
-                  <input
-                    type="time"
-                    value={quickCreateConfig.pmStart}
-                    onChange={(e) => setQuickCreateConfig(prev => ({ ...prev, pmStart: e.target.value }))}
-                    className="w-16 px-1 py-1 border border-gray-300 rounded text-xs"
-                  />
-                  <span>-</span>
-                  <input
-                    type="time"
-                    value={quickCreateConfig.pmEnd}
-                    onChange={(e) => setQuickCreateConfig(prev => ({ ...prev, pmEnd: e.target.value }))}
-                    className="w-16 px-1 py-1 border border-gray-300 rounded text-xs"
-                  />
-                </div>
-              </div>
+          <div className="mb-6">
+            <div className="p-4 bg-blue-50 border border-blue-100 text-sm text-blue-800 rounded-xl">
+              원하는 요일에서 시간 버튼을 누르면 10분 간격 슬롯 6개가 한 번에 생성됩니다. 이미 만든 시간대를 다시 눌러도 중복되지 않으며, 삭제 후 재생성도 가능합니다.
             </div>
           </div>
 
@@ -486,12 +448,29 @@ export default function TeacherSchedulePage() {
                     <div className="mb-4">
                       <div className="flex items-center justify-between mb-2">
                         <span className="text-xs font-medium text-orange-600">오전</span>
-                        <button
-                          onClick={() => createQuickSlots(dateString, 'AM')}
-                          className="text-xs bg-orange-100 text-orange-700 px-2 py-1 rounded hover:bg-orange-200 transition-colors"
-                        >
-                          + 생성
-                        </button>
+                      </div>
+                      <div className="flex flex-wrap gap-1 mb-2">
+                        {AM_HOURS.map((hour) => {
+                          const hourComplete = isHourComplete(daySlots.AM, hour)
+                          const hourStarted = hasHourSlots(daySlots.AM, hour)
+                          const hourLabel = `${hour.toString().padStart(2, '0')}시`
+
+                          return (
+                            <button
+                              key={`teacher-am-${hour}`}
+                              onClick={() => createHourSlots(dateString, 'AM', hour)}
+                              className={`text-xs px-2 py-1 rounded border transition-colors ${
+                                hourComplete
+                                  ? 'bg-green-100 text-green-800 border-green-200'
+                                  : hourStarted
+                                    ? 'bg-yellow-100 text-yellow-800 border-yellow-200 hover:bg-yellow-200'
+                                    : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-100'
+                              }`}
+                            >
+                              {hourLabel}
+                            </button>
+                          )
+                        })}
                       </div>
                       <div className="space-y-1 max-h-32 overflow-y-auto">
                         {daySlots.AM.length === 0 ? (
@@ -556,12 +535,29 @@ export default function TeacherSchedulePage() {
                     <div>
                       <div className="flex items-center justify-between mb-2">
                         <span className="text-xs font-medium text-purple-600">오후</span>
-                        <button
-                          onClick={() => createQuickSlots(dateString, 'PM')}
-                          className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded hover:bg-purple-200 transition-colors"
-                        >
-                          + 생성
-                        </button>
+                      </div>
+                      <div className="flex flex-wrap gap-1 mb-2">
+                        {PM_HOURS.map((hour) => {
+                          const hourComplete = isHourComplete(daySlots.PM, hour)
+                          const hourStarted = hasHourSlots(daySlots.PM, hour)
+                          const hourLabel = `${hour.toString().padStart(2, '0')}시`
+
+                          return (
+                            <button
+                              key={`teacher-pm-${hour}`}
+                              onClick={() => createHourSlots(dateString, 'PM', hour)}
+                              className={`text-xs px-2 py-1 rounded border transition-colors ${
+                                hourComplete
+                                  ? 'bg-green-100 text-green-800 border-green-200'
+                                  : hourStarted
+                                    ? 'bg-yellow-100 text-yellow-800 border-yellow-200 hover:bg-yellow-200'
+                                    : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-100'
+                              }`}
+                            >
+                              {hourLabel}
+                            </button>
+                          )
+                        })}
                       </div>
                       <div className="space-y-1 max-h-32 overflow-y-auto">
                         {daySlots.PM.length === 0 ? (
@@ -632,7 +628,7 @@ export default function TeacherSchedulePage() {
         <div className="bg-green-50 border border-green-200 rounded-lg p-4 mt-6">
           <h4 className="font-medium text-green-800 mb-2">사용 안내</h4>
           <div className="text-sm text-green-700 space-y-1">
-            <p>• <strong>+ 생성</strong>: 해당 날짜의 오전/오후 전체 시간대에 타임슬롯을 자동으로 생성합니다</p>
+            <p>• <strong>시간 버튼</strong>: 선택한 시간의 10분 간격 슬롯 6개를 한 번에 생성합니다</p>
             <p>• <strong>⏸ 버튼</strong>: 예약 가능한 슬롯을 쉬는시간으로 변경합니다 (하루 최대 8개)</p>
             <p>• <strong>▶ 버튼</strong>: 쉬는시간을 다시 예약 가능한 상태로 변경합니다</p>
             <p>• 예약이 있는 슬롯은 쉬는시간으로 변경할 수 없습니다</p>
