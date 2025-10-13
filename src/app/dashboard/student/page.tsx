@@ -528,6 +528,10 @@ export default function StudentDashboard() {
     window.open('https://youtube.com/live/dzDsF2bpkmU?feature=share', '_blank')
     setShowSpecialLecture(false)
   }
+  const goToImageAnalysis2 = () => {
+    window.open('https://youtube.com/live/dk20Sv5AUs8?feature=share', '_blank')
+    setShowSpecialLecture(false)
+  }
   // 시나리오 분석 2 페이지로 이동
   const goToScenarioAnalysis2 = () => {
     window.open('https://youtube.com/live/tKWKaTkD_Vw?feature=share', '_blank')
@@ -724,6 +728,19 @@ export default function StudentDashboard() {
                       </div>
                     </button>
                     <button
+                      onClick={goToImageAnalysis2}
+                      className="w-full px-4 py-3 text-left hover:bg-gray-50 transition-colors flex items-center"
+                    >
+                      <div className="w-8 h-8 bg-sky-100 rounded-lg flex items-center justify-center mr-3">
+                        <svg className="w-4 h-4 text-sky-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h6a2 2 0 002-2v-8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                        </svg>
+                      </div>
+                      <div>
+                        <div className="font-medium text-gray-900">이미지분석 특강2</div>
+                      </div>
+                    </button>
+                    <button
                       onClick={goToScenarioAnalysis2}
                       className="w-full px-4 py-3 text-left hover:bg-gray-50 transition-colors flex items-center"
                     >
@@ -813,6 +830,19 @@ export default function StudentDashboard() {
                       </div>
                       <div>
                         <div className="font-medium text-gray-900">이미지/시나리오 분석</div>
+                      </div>
+                    </button>
+                    <button
+                      onClick={goToImageAnalysis2}
+                      className="w-full px-4 py-3 text-left hover:bg-gray-50 transition-colors flex items-center"
+                    >
+                      <div className="w-8 h-8 bg-sky-100 rounded-lg flex items-center justify-center mr-3">
+                        <svg className="w-4 h-4 text-sky-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h6a2 2 0 002-2v-8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                        </svg>
+                      </div>
+                      <div>
+                        <div className="font-medium text-gray-900">이미지분석 특강2</div>
                       </div>
                     </button>
                     <button
